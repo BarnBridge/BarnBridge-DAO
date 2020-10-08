@@ -18,7 +18,7 @@ task('accounts', 'Prints the list of accounts', async () => {
 // Go to https://buidler.dev/config/ for the syntax.
 module.exports = {
     solc: {
-        version: '0.6.12',
+        version: '0.7.1',
         optimizer: {
             enabled: true,
             runs: 1000,
