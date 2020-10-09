@@ -6,52 +6,33 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IERC173.sol";
 import "./interfaces/IERC165.sol";
 import "./lib/Diamond.sol";
-import "./facets/Governance.sol";
+import "./facets/DiamondLoupeFacet.sol";
 import "./interfaces/IDiamondCut.sol";
 contract BarnBridgeDAO is Diamond {
     constructor() payable {
-        // set diamon cuts
+        // set diamond cuts for DiamondLoupe
 
-        Governance governance = new Governance();
+        DiamondLoupeFacet diamondLoupe = new DiamondLoupeFacet();
 
-        bytes4[] memory governanceSelectors;
-        governanceSelectors[0] = Governance.newProposal.selector;
-        governanceSelectors[1] = Governance.executeProposal.selector;
-        governanceSelectors[2] = Governance.vote.selector;
-        governanceSelectors[3] = Governance.cancelVote.selector;
+        bytes4[] memory diamondLoupeSelectors;
+        diamondLoupeSelectors[0] = DiamondLoupeFacet.facets.selector;
+        diamondLoupeSelectors[1] = DiamondLoupeFacet.facetFunctionSelectors.selector;
+        diamondLoupeSelectors[2] = DiamondLoupeFacet.facetAddresses.selector;
+        diamondLoupeSelectors[3] = DiamondLoupeFacet.facetAddress.selector;
+        diamondLoupeSelectors[3] = DiamondLoupeFacet.supportsInterface.selector;
 
 
         FacetCut[] memory diamondCuts;
 
-        FacetCut memory _diamondCut = FacetCut(address(governance), FacetCutAction.Add, governanceSelectors);
+        FacetCut memory _diamondCut = FacetCut(address(diamondLoupe), FacetCutAction.Add, diamondLoupeSelectors);
         diamondCuts[0] = _diamondCut;
         diamondCut(diamondCuts);
 
-
-
-
         DiamondStorage storage ds = diamondStorage();
-
-        // adding ERC165 data
-        // ERC165
-//        ds.supportedInterfaces[IERC165.supportsInterface.selector] = true;
 
         // DiamondCut
         ds.supportedInterfaces[IDiamondCut.diamondCut.selector] = true;
 
-        // DiamondLoupe
-//        ds.supportedInterfaces[
-//            IDiamondLoupe.facets.selector ^
-//            IDiamondLoupe.facetFunctionSelectors.selector ^
-//            IDiamondLoupe.facetAddresses.selector ^
-//            IDiamondLoupe.facetAddress.selector
-//        ] = true;
-
-        // ERC173
-//        ds.supportedInterfaces[
-//            IERC173.transferOwnership.selector ^
-//            IERC173.owner.selector
-//        ] = true;
     }
 
     // Find facet for function that is called and execute the
