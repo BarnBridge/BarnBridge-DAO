@@ -22,9 +22,9 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-    - run: npm ci
+    - run: yarn
     - run: cp ./config.sample.js ./config.js
-    - run: npm test
+    - run: yarn test
 
   coverage:
     name: Coverage
@@ -39,9 +39,9 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-    - run: npm ci
+    - run: yarn ci
     - run: cp ./config.sample.js ./config.js
-    - run: npm run coverage
+    - run: yarn run coverage
     - uses: actions/upload-artifact@v2
       with:
         name: Coverage ${{ matrix.node-version }}
