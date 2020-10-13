@@ -1,8 +1,9 @@
-const config = require('./config')
+const config = require('./config');
 
-usePlugin('@nomiclabs/buidler-waffle')
+usePlugin('@nomiclabs/buidler-waffle');
 usePlugin("@nomiclabs/buidler-etherscan");
-usePlugin('solidity-coverage')
+usePlugin('solidity-coverage');
+usePlugin('buidler-abi-exporter');
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -18,7 +19,7 @@ task('accounts', 'Prints the list of accounts', async () => {
 // Go to https://buidler.dev/config/ for the syntax.
 module.exports = {
     solc: {
-        version: '0.7.1',
+        version: '0.7.0',
         optimizer: {
             enabled: true,
             runs: 1000,
@@ -29,4 +30,9 @@ module.exports = {
 
     networks: config.networks,
     etherscan: config.etherscan,
+
+    abiExporter: {
+        only: ['BarnBridgeDAO'],
+        clear: true,
+    },
 }

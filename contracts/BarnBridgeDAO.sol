@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.1;
+pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 
@@ -14,15 +14,14 @@ contract BarnBridgeDAO is Diamond {
 
         DiamondLoupeFacet diamondLoupe = new DiamondLoupeFacet();
 
-        bytes4[] memory diamondLoupeSelectors;
+        bytes4[] memory diamondLoupeSelectors = new bytes4[](4);
         diamondLoupeSelectors[0] = DiamondLoupeFacet.facets.selector;
         diamondLoupeSelectors[1] = DiamondLoupeFacet.facetFunctionSelectors.selector;
         diamondLoupeSelectors[2] = DiamondLoupeFacet.facetAddresses.selector;
         diamondLoupeSelectors[3] = DiamondLoupeFacet.facetAddress.selector;
-        diamondLoupeSelectors[3] = DiamondLoupeFacet.supportsInterface.selector;
 
 
-        FacetCut[] memory diamondCuts;
+        FacetCut[] memory diamondCuts = new FacetCut[](1);
 
         FacetCut memory _diamondCut = FacetCut(address(diamondLoupe), FacetCutAction.Add, diamondLoupeSelectors);
         diamondCuts[0] = _diamondCut;
