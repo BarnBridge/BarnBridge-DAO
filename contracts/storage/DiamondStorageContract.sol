@@ -15,8 +15,6 @@ contract DiamondStorageContract {
         mapping(bytes4 => FacetAddressAndSelectorPosition) facetAddressAndSelectorPosition;
         bytes4[] selectors;
         mapping(bytes4 => bool) supportedInterfaces;
-        // owner of the contract
-        address contractOwner;
     }
 
     function diamondStorage() internal pure returns(DiamondStorage storage ds) {
