@@ -1,6 +1,6 @@
 /* eslint-disable prefer-const */
 /* global contract artifacts web3 before it assert */
-const { ethers } = require('@nomiclabs/buidler')
+const { ethers } = require('hardhat')
 const { expect } = require('chai')
 
 const diamond = require('diamond-util')
