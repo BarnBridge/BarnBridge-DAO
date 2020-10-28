@@ -1,19 +1,16 @@
 /* eslint-disable prefer-const */
-/* global contract artifacts web3 before it assert */
 const { ethers } = require('hardhat')
 const { expect } = require('chai')
+const helpers = require('./helpers')
+const _const = require('./const')
 
-const diamond = require('diamond-util')
-
-let account, barnBridgeDAO
+let account, dao
 
 describe('BarnBridgeDAO', async function () {
     before(async function () {
-        const DiamondLoupeFacetFactory = await ethers.getContractFactory('DiamondLoupeFacet')
-        const BarnBridgeDAOFactory = await ethers.getContractFactory('BarnBridgeDAO')
-        const diamondLoupeFacet = await DiamondLoupeFacetFactory.deploy()
-        barnBridgeDAO = await BarnBridgeDAOFactory.deploy()
-        await diamondLoupeFacet.deployed()
+        const loupe = await helpers.deployLoupe()
+
+        dao = await helpers.deployDiamond('BarnBridgeDAO', [loupe])
 
         const accounts = await ethers.getSigners()
         account = await accounts[0].getAddress()
@@ -21,7 +18,13 @@ describe('BarnBridgeDAO', async function () {
 
     describe('Dao Tests', function () {
         it('should be deployed', async function () {
-            expect(barnBridgeDAO.address).to.not.equal(0)
+            expect(dao.address).to.not.equal(0)
+        })
+
+        it('should have loupe functions', async function () {
+            const d = await helpers.daoAsFacet(dao, _const.loupeFacet)
+
+            expect(await d.facets()).to.not.throw
         })
     })
 })
