@@ -18,6 +18,7 @@ describe('BarnBridgeDAO', async function () {
         const accounts = await ethers.getSigners()
         account = await accounts[0].getAddress()
     })
+
     describe('Dao Tests', function () {
         it('should be deployed', async function () {
             expect(barnBridgeDAO.address).to.not.equal(0)
