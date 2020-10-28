@@ -2,7 +2,7 @@
 pragma solidity ^0.7.1;
 pragma experimental ABIEncoderV2;
 
-interface IBBVote {
+interface IVoteLock {
     // deposit allows a user to add more bond to his staked balance
     function deposit(uint256 amount) external;
 

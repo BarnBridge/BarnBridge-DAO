@@ -2,10 +2,10 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../interfaces/IBBVote.sol";
+import "../interfaces/IVoteLock.sol";
 import "../storage/VoteLockStorage.sol";
 
-contract VoteLock is IBBVote, VoteLockStorage {
+contract VoteLock is IVoteLock, VoteLockStorage {
     // todo: TBD if we want to add something like `depositAndLock` to avoid making 2 transactions to lock some BOND
 
     // deposit allows a user to add more bond to his staked balance
