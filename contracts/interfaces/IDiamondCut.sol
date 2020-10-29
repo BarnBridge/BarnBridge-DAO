@@ -1,13 +1,10 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.7.0;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.7.1;
 pragma experimental ABIEncoderV2;
-
-/******************************************************************************\
-* Author: Nick Mudge <nick@perfectabstractions.com> (https://twitter.com/mudgen)
-/******************************************************************************/
 
 interface IDiamondCut {
     enum FacetCutAction {Add, Replace, Remove}
+    // Add=0, Replace=1, Remove=2
 
     struct FacetCut {
         address facetAddress;
