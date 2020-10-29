@@ -2,17 +2,15 @@
 pragma solidity ^0.7.1;
 pragma experimental ABIEncoderV2;
 
-contract VoteLockStorage {
-    bytes32 constant DIAMOND_STORAGE_POSITION = keccak256("com.barnbridge.dao.votelock");
+contract VoteLockStorageContract {
+    bytes32 constant VOTELOCK_STORAGE_POSITION = keccak256("com.barnbridge.dao.votelock");
 
-    struct DiamondStorage {
+    struct VoteLockStorage {
         mapping(address => uint256) balances;
-
-        mapping(bytes4 => bool) supportedInterfaces;
     }
 
-    function diamondStorage() internal pure returns(DiamondStorage storage ds) {
-        bytes32 position = DIAMOND_STORAGE_POSITION;
+    function voteLockStorage() internal pure returns(VoteLockStorage storage ds) {
+        bytes32 position = VOTELOCK_STORAGE_POSITION;
         assembly { ds.slot := position }
     }
 }
