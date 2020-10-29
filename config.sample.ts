@@ -9,7 +9,7 @@ export const networks: NetworksUserConfig = {
 
     // Rinkeby
     rinkeby: {
-        url: 'https://rinkeby.infura.io/v3/081e445d74c146db88a6c5fded5e611a',
+        url: 'https://rinkeby.infura.io/v3/YOUR-INFURA-API-KEY',
         chainId: 4,
         accounts: {
             mnemonic: 'YOUR MNEMONIC HERE',
@@ -24,7 +24,7 @@ export const networks: NetworksUserConfig = {
 
     // Mainnet
     mainnet: {
-        url: 'https://mainnet.infura.io/v3/081e445d74c146db88a6c5fded5e611a',
+        url: 'https://mainnet.infura.io/v3/YOUR-INFURA-API-KEY',
         chainId: 1,
         accounts: ['YOUR PRIVATE KEY HERE'],
         gas: 'auto',
