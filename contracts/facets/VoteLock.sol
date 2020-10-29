@@ -59,7 +59,7 @@ contract VoteLock is IVoteLock, VoteLockStorage {
     }
 
     function balanceOf(address user) public returns (uint256){
-        DiamondStorage storage ds = diamondStorage();
+        VoteLockStorage storage ds = voteLockStorage();
 
         return ds.balances[user];
     }
