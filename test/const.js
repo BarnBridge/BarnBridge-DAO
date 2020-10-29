@@ -1,2 +1,2 @@
 exports.loupeFacet = 'DiamondLoupeFacet'
-exports.voteLockFacet = 'VoteLockFacet'
+exports.voteLockFacet = 'VoteLock'

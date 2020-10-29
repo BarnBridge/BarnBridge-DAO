@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "../interfaces/IVoteLock.sol";
 import "../storage/VoteLockStorage.sol";
+import "hardhat/console.sol";
 
 contract VoteLock is IVoteLock, VoteLockStorageContract {
     // todo: TBD if we want to add something like `depositAndLock` to avoid making 2 transactions to lock some BOND
@@ -58,7 +59,7 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
         return 0;
     }
 
-    function balanceOf(address user) public returns (uint256){
+    function balanceOf(address user) public view returns (uint256){
         VoteLockStorage storage ds = voteLockStorage();
 
         return ds.balances[user];
