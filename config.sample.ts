@@ -24,9 +24,9 @@ export const networks: NetworksUserConfig = {
 
     // Mainnet
     mainnet: {
-        url: 'https://mainnet.infura.io/v3/YOUR-INFURA-API-KEY',
+        url: 'https://mainnet.infura.io/v3/YOUR-INFURA-KEY',
         chainId: 1,
-        accounts: ['YOUR PRIVATE KEY HERE'],
+        accounts: ['0xaaaa'],
         gas: 'auto',
         gasPrice: 50000000000,
         gasMultiplier: 1.5,
