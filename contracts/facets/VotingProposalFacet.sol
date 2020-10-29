@@ -1,8 +1,10 @@
-pragma solidity ^0.7.0;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.7.1;
 
-import "../storage/VotingProposalStorageContract.sol";
+import "../storage/VotingProposalStorage.sol";
 
-contract VotingProposalFacet is VotingProposalStorageContract {
+contract VotingProposalFacet is VotingProposalStorage {
+
 
 
 

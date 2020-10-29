@@ -1,9 +1,12 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.7.0;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.7.1;
 
-contract VotingProposalStorageContract {
+contract VotingProposalStorage {
 
     bytes32 constant VOTING_PROPOSAL_STORAGE = keccak256("diamond.standard.voting.proposal.storage");
+    uint constant WARMUP = 1000;
+    uint constant ACTIVE = 2000;
+
 
     enum ProposalState {
         WarmUp,
@@ -17,8 +20,16 @@ contract VotingProposalStorageContract {
         Executed
     }
 
+    struct Receipt {
+        /// @notice Whether or not a vote has been cast
+        bool hasVoted;
+
+        /// @notice The number of votes the voter had, which were cast
+        uint96 votes;
+    }
 
     struct Proposal {
+
         // proposal identifiers
         // unique id
         uint id;
@@ -38,11 +49,16 @@ contract VotingProposalStorageContract {
         string[] signatures;
         // The ordered list of calldata to be passed to each call
         bytes[] calldatas;
+
         // proposal startTime
         uint startTime;
         ProposalState state;
 
         // votes status
+
+        // @notice Minimum amount of vBond votes for this proposal to be considered
+        uint quorum;
+
         /// @notice Current number of votes in favor of this proposal
         uint forVotes;
 
@@ -53,7 +69,8 @@ contract VotingProposalStorageContract {
         // canceled by owner or Guardian
         /// @notice Flag marking whether the proposal has been canceled
         bool canceled;
-
+        /// @notice Receipts of ballots for the entire set of voters
+        mapping (address => Receipt) receipts;
     }
     struct VotingProposalStorage {
         uint lastProposalId;
