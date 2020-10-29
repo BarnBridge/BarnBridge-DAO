@@ -2,7 +2,7 @@
 pragma solidity ^0.7.1;
 pragma experimental ABIEncoderV2;
 
-contract VoteLockStorage {
+contract VoteLockStorageContract {
     bytes32 constant VOTELOCK_STORAGE_POSITION = keccak256("com.barnbridge.dao.votelock");
 
     struct VoteLockStorage {

@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 import "../interfaces/IDiamondCut.sol";
 import "../storage/DiamondStorage.sol";
 
-contract Diamond is DiamondStorage {
+contract Diamond is DiamondStorageContract {
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut, address _init, bytes _calldata);
 
     enum FacetCutAction {Add, Replace, Remove}
