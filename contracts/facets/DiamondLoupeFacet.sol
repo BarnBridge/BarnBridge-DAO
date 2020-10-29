@@ -1,17 +1,11 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.7.0;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.7.1;
 pragma experimental ABIEncoderV2;
 
-/******************************************************************************\
-* Author: Nick Mudge <nick@perfectabstractions.com> (https://twitter.com/mudgen)
-/******************************************************************************/
-
 import "../interfaces/IDiamondLoupe.sol";
-import "../interfaces/IERC165.sol";
-import "../storage/DiamondStorageContract.sol";
+import "../storage/DiamondStorage.sol";
 
-
-contract DiamondLoupeFacet is IDiamondLoupe, IERC165, DiamondStorageContract {
+contract DiamondLoupeFacet is IDiamondLoupe, DiamondStorage {
     // Diamond Loupe Functions
     ////////////////////////////////////////////////////////////////////
     /// These functions are expected to be called frequently by tools.
@@ -24,15 +18,18 @@ contract DiamondLoupeFacet is IDiamondLoupe, IERC165, DiamondStorageContract {
     /// @return facets_ Facet
     function facets() external override view returns (Facet[] memory facets_) {
         DiamondStorage storage ds = diamondStorage();
+
         uint256 selectorCount = ds.selectors.length;
         facets_ = new Facet[](selectorCount);
         uint8[] memory numFacetSelectors = new uint8[](selectorCount);
         uint256 numFacets;
+
         // loop through function selectors
         for (uint256 selectorIndex; selectorIndex < selectorCount; selectorIndex++) {
             bytes4 selector = ds.selectors[selectorIndex];
             address facetAddress_ = ds.facetAddressAndSelectorPosition[selector].facetAddress;
             bool continueLoop = false;
+
             for (uint256 facetIndex; facetIndex < numFacets; facetIndex++) {
                 if (facets_[facetIndex].facetAddress == facetAddress_) {
                     facets_[facetIndex].functionSelectors[numFacetSelectors[facetIndex]] = selector;
@@ -43,16 +40,19 @@ contract DiamondLoupeFacet is IDiamondLoupe, IERC165, DiamondStorageContract {
                     break;
                 }
             }
+
             if (continueLoop) {
                 continueLoop = false;
                 continue;
             }
+
             facets_[numFacets].facetAddress = facetAddress_;
             facets_[numFacets].functionSelectors = new bytes4[](selectorCount);
             facets_[numFacets].functionSelectors[0] = selector;
             numFacetSelectors[numFacets] = 1;
             numFacets++;
         }
+
         for (uint256 facetIndex; facetIndex < numFacets; facetIndex++) {
             uint256 numSelectors = numFacetSelectors[facetIndex];
             bytes4[] memory selectors = facets_[facetIndex].functionSelectors;
@@ -61,6 +61,7 @@ contract DiamondLoupeFacet is IDiamondLoupe, IERC165, DiamondStorageContract {
                 mstore(selectors, numSelectors)
             }
         }
+
         // setting the number of facets
         assembly {
             mstore(facets_, numFacets)
@@ -72,9 +73,11 @@ contract DiamondLoupeFacet is IDiamondLoupe, IERC165, DiamondStorageContract {
     /// @return _facetFunctionSelectors The selectors associated with a facet address.
     function facetFunctionSelectors(address _facet) external override view returns (bytes4[] memory _facetFunctionSelectors) {
         DiamondStorage storage ds = diamondStorage();
+
         uint256 selectorCount = ds.selectors.length;
         uint256 numSelectors;
         _facetFunctionSelectors = new bytes4[](selectorCount);
+
         // loop through function selectors
         for (uint256 selectorIndex; selectorIndex < selectorCount; selectorIndex++) {
             bytes4 selector = ds.selectors[selectorIndex];
@@ -84,6 +87,7 @@ contract DiamondLoupeFacet is IDiamondLoupe, IERC165, DiamondStorageContract {
                 numSelectors++;
             }
         }
+
         // Set the number of selectors in the array
         assembly {
             mstore(_facetFunctionSelectors, numSelectors)
@@ -94,14 +98,17 @@ contract DiamondLoupeFacet is IDiamondLoupe, IERC165, DiamondStorageContract {
     /// @return facetAddresses_
     function facetAddresses() external override view returns (address[] memory facetAddresses_) {
         DiamondStorage storage ds = diamondStorage();
+
         uint256 selectorCount = ds.selectors.length;
         facetAddresses_ = new address[](selectorCount);
         uint256 numFacets;
+
         // loop through function selectors
         for (uint256 selectorIndex; selectorIndex < selectorCount; selectorIndex++) {
             bytes4 selector = ds.selectors[selectorIndex];
             address facetAddress_ = ds.facetAddressAndSelectorPosition[selector].facetAddress;
             bool continueLoop = false;
+
             // see if we have collected the address
             for (uint256 facetIndex; facetIndex < numFacets; facetIndex++) {
                 if (facetAddress_ == facetAddresses_[facetIndex]) {
@@ -109,15 +116,18 @@ contract DiamondLoupeFacet is IDiamondLoupe, IERC165, DiamondStorageContract {
                     break;
                 }
             }
+
             // continue loop if we already have the address
             if (continueLoop) {
                 continueLoop = false;
                 continue;
             }
+
             // include address
             facetAddresses_[numFacets] = facetAddress_;
             numFacets++;
         }
+
         // Set the number of facet addresses in the array
         assembly {
             mstore(facetAddresses_, numFacets)
@@ -131,11 +141,5 @@ contract DiamondLoupeFacet is IDiamondLoupe, IERC165, DiamondStorageContract {
     function facetAddress(bytes4 _functionSelector) external override view returns (address facetAddress_) {
         DiamondStorage storage ds = diamondStorage();
         facetAddress_ = ds.facetAddressAndSelectorPosition[_functionSelector].facetAddress;
-    }
-
-    // This implements ERC-165.
-    function supportsInterface(bytes4 _interfaceId) external override view returns (bool) {
-        DiamondStorage storage ds = diamondStorage();
-        return ds.supportedInterfaces[_interfaceId];
     }
 }
