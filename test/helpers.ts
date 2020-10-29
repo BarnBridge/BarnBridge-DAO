@@ -2,7 +2,23 @@
 // @ts-ignore
 import { ethers } from 'hardhat';
 import { Contract, ContractFactory } from 'ethers';
-import * as diamond from 'diamond-util';
+
+const FacetCutAction = {
+    Add: 0,
+    Replace: 1,
+    Remove: 2,
+};
+
+function getSelectors (contract:Contract) {
+    const signatures: string[] = Object.keys(contract.interface.functions);
+    const selectors = signatures.reduce((acc:string[], val) => {
+        if (val !== 'init(bytes)') {
+            acc.push(contract.interface.getSighash(val));
+        }
+        return acc;
+    }, []);
+    return selectors;
+}
 
 export async function deployVoteLock (): Promise<Contract> {
     const VoteLock:ContractFactory = await ethers.getContractFactory('VoteLock');
@@ -26,8 +42,8 @@ export async function deployDiamond (diamondArtifactName:string, facets:Array<Co
     for (const facet of facets) {
         diamondCut.push([
             facet.address,
-            diamond.FacetCutAction.Add,
-            diamond.getSelectors(facet),
+            FacetCutAction.Add,
+            getSelectors(facet),
         ]);
     }
 
@@ -38,6 +54,6 @@ export async function deployDiamond (diamondArtifactName:string, facets:Array<Co
     return deployedDiamond;
 }
 
-export async function daoAsFacet (dao, facetName):Promise<Contract> {
+export async function daoAsFacet (dao:Contract, facetName:string):Promise<Contract> {
     return await ethers.getContractAt(facetName, dao.address);
 }

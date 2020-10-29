@@ -9,7 +9,7 @@ import { expect } from 'chai';
 describe('VoteLock', function () {
     const amount = BigNumber.from(100).mul(BigNumber.from(10).pow(18));
 
-    let dao, lock: Contract;
+    let dao:Contract, lock: Contract;
     let user: Signer;
 
     before(async function () {
