@@ -1,11 +1,12 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.7.0;
+// SPDX-License-Identifier: Apache-2
+pragma solidity ^0.7.1;
 pragma experimental ABIEncoderV2;
 
 import "../interfaces/IVoteLock.sol";
 import "../storage/VoteLockStorage.sol";
+import "hardhat/console.sol";
 
-contract VoteLock is IVoteLock, VoteLockStorage {
+contract VoteLock is IVoteLock, VoteLockStorageContract {
     // todo: TBD if we want to add something like `depositAndLock` to avoid making 2 transactions to lock some BOND
 
     // deposit allows a user to add more bond to his staked balance
@@ -58,7 +59,7 @@ contract VoteLock is IVoteLock, VoteLockStorage {
         return 0;
     }
 
-    function balanceOf(address user) public returns (uint256){
+    function balanceOf(address user) public view returns (uint256){
         VoteLockStorage storage ds = voteLockStorage();
 
         return ds.balances[user];

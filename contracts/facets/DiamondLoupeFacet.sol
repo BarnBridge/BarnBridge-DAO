@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 import "../interfaces/IDiamondLoupe.sol";
 import "../storage/DiamondStorage.sol";
 
-contract DiamondLoupeFacet is IDiamondLoupe, DiamondStorage {
+contract DiamondLoupeFacet is IDiamondLoupe, DiamondStorageContract {
     // Diamond Loupe Functions
     ////////////////////////////////////////////////////////////////////
     /// These functions are expected to be called frequently by tools.
