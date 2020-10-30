@@ -4,8 +4,10 @@ pragma solidity ^0.7.1;
 contract VotingProposalStorage {
 
     bytes32 constant VOTING_PROPOSAL_STORAGE = keccak256("diamond.standard.voting.proposal.storage");
-    uint constant WARMUP = 1000;
+    uint constant WARM_UP = 2000;
     uint constant ACTIVE = 2000;
+    uint constant QUEUE = 2000;
+    uint constant GRACE = 2000;
 
 
     enum ProposalState {
@@ -50,14 +52,18 @@ contract VotingProposalStorage {
         // The ordered list of calldata to be passed to each call
         bytes[] calldatas;
 
-        // proposal startTime
+        // proposal proposal creation time - 1
+        uint createTime;
+        // proposal actual vote start time
         uint startTime;
-        ProposalState state;
 
         // votes status
 
         // @notice Minimum amount of vBond votes for this proposal to be considered
         uint quorum;
+
+        /// @notice The timestamp that the proposal will be available for execution, set once the vote succeeds
+        uint eta;
 
         /// @notice Current number of votes in favor of this proposal
         uint forVotes;
@@ -69,6 +75,8 @@ contract VotingProposalStorage {
         // canceled by owner or Guardian
         /// @notice Flag marking whether the proposal has been canceled
         bool canceled;
+        // @notice flag for proposal was executed
+        bool executed;
         /// @notice Receipts of ballots for the entire set of voters
         mapping (address => Receipt) receipts;
     }
