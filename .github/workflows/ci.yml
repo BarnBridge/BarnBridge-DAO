@@ -23,7 +23,7 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
     - run: yarn
-    - run: cp ./config.sample.js ./config.js
+    - run: cp ./config.sample.ts ./config.ts
     - run: yarn test
 
 #   coverage:
