@@ -4,10 +4,10 @@ pragma solidity ^0.7.1;
 contract VotingProposalStorage {
 
     bytes32 constant VOTING_PROPOSAL_STORAGE = keccak256("diamond.standard.voting.proposal.storage");
-    uint constant WARM_UP = 2000;
-    uint constant ACTIVE = 2000;
-    uint constant QUEUE = 2000;
-    uint constant GRACE = 2000;
+    uint public constant WARM_UP = 2 days;
+    uint public constant ACTIVE = 2 days;
+    uint public constant QUEUE = 2 days;
+    uint public constant GRACE_PERIOD = 2 days;
 
 
     enum ProposalState {
@@ -82,7 +82,8 @@ contract VotingProposalStorage {
     }
     struct VotingProposalStorage {
         uint lastProposalId;
-        mapping (uint => Proposal) votingProposals;
+        mapping (uint => Proposal) proposals;
+        mapping (address => uint) latestProposalIds;
     }
 
     function votingProposalStorage() internal pure returns(VotingProposalStorage storage vs) {
