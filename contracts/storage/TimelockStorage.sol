@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.7.1;
 
-contract TimelockStorage {
+contract TimelockStorageContract {
 
     bytes32 constant TIMELOCK_STORAGE = keccak256("diamond.standard.timelock.storage");
 

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.7.1;
 
-contract VotingProposalStorage {
+contract VotingProposalStorageContract {
 
     bytes32 constant VOTING_PROPOSAL_STORAGE = keccak256("diamond.standard.voting.proposal.storage");
-    uint public constant WARM_UP = 2 days;
-    uint public constant ACTIVE = 2 days;
-    uint public constant QUEUE = 2 days;
-    uint public constant GRACE_PERIOD = 2 days;
+    uint constant WARM_UP = 2 days;
+    uint constant ACTIVE = 2 days;
+    uint constant QUEUE = 2 days;
+    uint constant GRACE_PERIOD = 2 days;
 
 
     enum ProposalState {
@@ -23,10 +23,10 @@ contract VotingProposalStorage {
     }
 
     struct Receipt {
-        /// @notice Whether or not a vote has been cast
+        // Whether or not a vote has been cast
         bool hasVoted;
 
-        /// @notice The number of votes the voter had, which were cast
+        // The number of votes the voter had, which were cast
         uint96 votes;
     }
 
@@ -59,25 +59,25 @@ contract VotingProposalStorage {
 
         // votes status
 
-        // @notice Minimum amount of vBond votes for this proposal to be considered
+        // Minimum amount of vBond votes for this proposal to be considered
         uint quorum;
 
-        /// @notice The timestamp that the proposal will be available for execution, set once the vote succeeds
+        // The timestamp that the proposal will be available for execution, set once the vote succeeds
         uint eta;
 
-        /// @notice Current number of votes in favor of this proposal
+        // Current number of votes in favor of this proposal
         uint forVotes;
 
-        /// @notice Current number of votes in opposition to this proposal
+        // Current number of votes in opposition to this proposal
         uint againstVotes;
 
 
         // canceled by owner or Guardian
-        /// @notice Flag marking whether the proposal has been canceled
+        // Flag marking whether the proposal has been canceled
         bool canceled;
-        // @notice flag for proposal was executed
+        // flag for proposal was executed
         bool executed;
-        /// @notice Receipts of ballots for the entire set of voters
+        // Receipts of ballots for the entire set of voters
         mapping (address => Receipt) receipts;
     }
     struct VotingProposalStorage {

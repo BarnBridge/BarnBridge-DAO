@@ -3,26 +3,26 @@ pragma solidity ^0.7.1;
 
 import "../storage/TimelockStorage.sol";
 
-contract TimelockFacet is TimelockStorage {
-    uint public constant GRACE_PERIOD = 14 days;
+contract TimelockFacet is TimelockStorageContract {
+    uint constant GRACE_PERIOD = 2 days;
 
 
     function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public returns (bytes32) {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        TimelockStorage ts = timelockStorage();
+        TimelockStorage storage ts = timelockStorage();
 
         ts.queuedTransactions[txHash] = true;
         return txHash;
     }
 
     function queuedTransactions (bytes32 txHash) public view returns (bool) {
-        TimelockStorage ts = timelockStorage();
+        TimelockStorage storage ts = timelockStorage();
         return ts.queuedTransactions[txHash];
     }
 
     function cancelTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        TimelockStorage ts = timelockStorage();
+        TimelockStorage storage ts = timelockStorage();
         ts.queuedTransactions[txHash] = false;
     }
 
@@ -31,7 +31,7 @@ contract TimelockFacet is TimelockStorage {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         require(getBlockTimestamp() >= eta, "Timelock::executeTransaction: Transaction hasn't surpassed time lock.");
         require(getBlockTimestamp() <= eta + GRACE_PERIOD, "Timelock::executeTransaction: Transaction is stale.");
-        TimelockStorage ts = timelockStorage();
+        TimelockStorage storage ts = timelockStorage();
 
         ts.queuedTransactions[txHash] = false;
 
@@ -44,10 +44,10 @@ contract TimelockFacet is TimelockStorage {
         }
 
         // solium-disable-next-line security/no-call-value
-        (bool success, bytes memory returnData) = target.call.value(value)(callData);
+        (bool success, bytes memory returnData) = target.call{value: value}(callData);
         require(success, "Timelock::executeTransaction: Transaction execution reverted.");
 
-        emit ExecuteTransaction(txHash, target, value, signature, data, eta);
+//        emit ExecuteTransaction(txHash, target, value, signature, data, eta);
 
         return returnData;
     }

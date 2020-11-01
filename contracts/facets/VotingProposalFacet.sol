@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.7.1;
+pragma experimental ABIEncoderV2;
 
 import "../storage/VotingProposalStorage.sol";
 import "../interfaces/ITimeLock.sol";
 
-contract VotingProposalFacet is VotingProposalStorage, ITimeLock {
+contract VotingProposalFacet is VotingProposalStorageContract {
 
 
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description, string memory title) public returns (uint) {
@@ -13,29 +14,27 @@ contract VotingProposalFacet is VotingProposalStorage, ITimeLock {
 
 
         // get storage
-        VotingProposalStorage vs = votingProposalStorage();
-        vs.lastProposalId += 1;
-        Proposal memory proposal = ({
-            id = vs.lastProposalId,
-            proposer: msg.sender,
-            description: description,
-            title: title,
-            targets: targets,
-            values: values,
-            signatures: signatures,
-            calldatas: calldatas,
-            creationTime: block.timestamp -1
-        });
+        VotingProposalStorage storage vs = votingProposalStorage();
+        uint newProposalId = vs.lastProposalId + 1;
+        Proposal storage newProposal = vs.proposals[newProposalId];
+        newProposal.id = newProposalId;
+        newProposal.proposer = msg.sender;
+        newProposal.description = description;
+        newProposal.title = title;
+        newProposal.targets = targets;
+        newProposal.values = values;
+        newProposal.signatures = signatures;
+        newProposal.calldatas = calldatas;
+        newProposal.createTime = block.timestamp - 1;
 
-        vs.proposals[vs.lastProposalId] = proposal;
-        vs.latestProposalIds = vs.lastProposalId;
+        vs.lastProposalId = newProposalId;
 
         return vs.lastProposalId;
     }
 
     function queue(uint proposalId) public {
-        require(state(proposalId) == ProposalState.Succeeded, "Proposal can only be queued if it is succeeded");
-        VotingProposalStorage vs = votingProposalStorage();
+        require(state(proposalId) == ProposalState.Accepted, "Proposal can only be queued if it is succeeded");
+        VotingProposalStorage storage vs = votingProposalStorage();
         Proposal storage proposal = vs.proposals[proposalId];
 
         uint eta = proposal.startTime + ACTIVE + QUEUE;
@@ -53,18 +52,18 @@ contract VotingProposalFacet is VotingProposalStorage, ITimeLock {
 
     function execute(uint proposalId) public payable {
         require(state(proposalId) == ProposalState.Queued, "Proposal can only be executed if it is queued");
-        VotingProposalStorage vs = votingProposalStorage();
+        VotingProposalStorage storage vs = votingProposalStorage();
         Proposal storage proposal = vs.proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
-            ITimeLock(address(this)).executeTransaction.value(proposal.values[i])(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+            ITimeLock(address(this)).executeTransaction{value: proposal.values[i]}(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
     }
 
     function cancel(uint proposalId) public {
         ProposalState state = state(proposalId);
         require(state != ProposalState.Executed, "GovernorAlpha::cancel: cannot cancel executed proposal");
-        VotingProposalStorage vs = votingProposalStorage();
+        VotingProposalStorage storage vs = votingProposalStorage();
 
         Proposal storage proposal = vs.proposals[proposalId];
 
@@ -73,12 +72,12 @@ contract VotingProposalFacet is VotingProposalStorage, ITimeLock {
             ITimeLock(address(this)).cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
 
-        emit ProposalCanceled(proposalId);
+//        emit ProposalCanceled(proposalId);
     }
 
 
     function state(uint proposalId) public view returns (ProposalState) {
-        VotingProposalStorage vs = votingProposalStorage();
+        VotingProposalStorage storage vs = votingProposalStorage();
         require(vs.lastProposalId >= proposalId && proposalId > 0, "invalid proposal id");
         Proposal storage proposal = vs.proposals[proposalId];
         if (proposal.canceled) {
@@ -88,9 +87,9 @@ contract VotingProposalFacet is VotingProposalStorage, ITimeLock {
         } else if (block.timestamp - 1 < proposal.startTime + ACTIVE) {
             return ProposalState.Active;
         } else if (proposal.forVotes <= proposal.againstVotes || proposal.forVotes < proposal.quorum) {
-            return ProposalState.Defeated;
+            return ProposalState.Failed;
         } else if (proposal.eta == 0) {
-            return ProposalState.Succeeded;
+            return ProposalState.Accepted;
         } else if (block.timestamp - 1 < proposal.eta) {
             return ProposalState.Queued;
         } else if (block.timestamp - 1 >= proposal.eta && block.timestamp - 1 <= proposal.eta + GRACE_PERIOD && proposal.executed == false) {
@@ -102,6 +101,8 @@ contract VotingProposalFacet is VotingProposalStorage, ITimeLock {
         }
     }
 
-
-
+    function lastProposalId() public view returns (uint) {
+        VotingProposalStorage storage vs = votingProposalStorage();
+        return vs.lastProposalId;
+    }
 }

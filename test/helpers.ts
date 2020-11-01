@@ -28,6 +28,22 @@ export async function deployVoteLock (): Promise<Contract> {
     return lock;
 }
 
+export async function deployVotingProposalFacet (): Promise<Contract> {
+    const VotingProposalFacet:ContractFactory = await ethers.getContractFactory('VotingProposalFacet');
+    const votingProposal:Contract = await VotingProposalFacet.deploy();
+    await votingProposal.deployed();
+
+    return votingProposal;
+}
+
+export async function deployTimelockFacet (): Promise<Contract> {
+    const TimelockFacet:ContractFactory = await ethers.getContractFactory('TimelockFacet');
+    const timelock:Contract = await TimelockFacet.deploy();
+    await timelock.deployed();
+
+    return timelock;
+}
+
 export async function deployLoupe (): Promise<Contract> {
     const DiamondLoupeFacetFactory: ContractFactory = await ethers.getContractFactory('DiamondLoupeFacet');
     const dlf: Contract = await DiamondLoupeFacetFactory.deploy();
@@ -56,4 +72,8 @@ export async function deployDiamond (diamondArtifactName:string, facets:Array<Co
 
 export async function daoAsFacet (dao:Contract, facetName:string):Promise<Contract> {
     return await ethers.getContractAt(facetName, dao.address);
+}
+
+export function zeroAddress (): string {
+    return '0x0000000000000000000000000000000000000000';
 }
