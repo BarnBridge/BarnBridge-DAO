@@ -27,7 +27,10 @@ contract VotingProposalStorageContract {
         bool hasVoted;
 
         // The number of votes the voter had, which were cast
-        uint96 votes;
+        uint votes;
+
+        // support
+        bool support;
     }
 
     struct Proposal {
