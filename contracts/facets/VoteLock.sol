@@ -141,7 +141,7 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
 
     // totalVotingPowerAtTs returns the total voting power at a point in time (equivalent to totalSupply)
     function totalVotingPowerAtTs(uint256 timestamp) override public view returns (uint256) {
-        return balanceAtTs(user, timestamp);
+        return 0;
     }
 
     // bondCirculatingSupply returns the current circulating supply of BOND
