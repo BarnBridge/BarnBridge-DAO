@@ -107,6 +107,16 @@ describe('VoteLock', function () {
         });
     });
 
+    describe('withdraw', async function () {
+        it('reverts if called with 0', async function () {
+            await expect(lock.connect(user).withdraw(0)).to.be.revertedWith('Amount must be greater than 0');
+        });
+
+        it('reverts if user does not have enough balance', async function () {
+            await expect(lock.connect(user).withdraw(amount)).to.be.revertedWith('Insufficient balance');
+        });
+    });
+
     async function prepareBond (balance:BigNumber) {
         await bond.mint(await user.getAddress(), balance);
         await bond.connect(user).approve(lock.address, balance);

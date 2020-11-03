@@ -26,7 +26,6 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
         uint256 allowance = ds.bond.allowance(msg.sender, address(this));
         require(allowance >= amount, "Token allowance too small");
 
-        uint256 currentBalance = 0;
         Stake[] storage checkpoints = ds.balances[msg.sender];
         uint256 numCheckpoints = checkpoints.length;
 
@@ -47,7 +46,10 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
 
     // withdraw allows a user to withdraw funds if the balance is not locked
     function withdraw(uint256 amount) override public {
+        require(amount > 0, "Amount must be greater than 0");
 
+        uint256 balance = balanceOf(msg.sender);
+        require(balance >= amount, "Insufficient balance");
     }
 
     // lock a user's currently staked balance until timestamp & add the bonus to his voting power
