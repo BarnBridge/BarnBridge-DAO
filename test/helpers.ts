@@ -2,6 +2,7 @@
 // @ts-ignore
 import { ethers } from 'hardhat';
 import { Contract, ContractFactory } from 'ethers';
+import { VoteLock } from '../typechain';
 
 const FacetCutAction = {
     Add: 0,
@@ -56,6 +57,10 @@ export async function deployDiamond (diamondArtifactName: string, facets: Array<
 
 export async function daoAsFacet (dao: Contract, facetName: string): Promise<Contract> {
     return await ethers.getContractAt(facetName, dao.address);
+}
+
+export async function daoAsVoteLock (dao: Contract): Promise<VoteLock> {
+    return (await ethers.getContractAt('VoteLock', dao.address)) as VoteLock;
 }
 
 export async function getLatestBlock (): Promise<any> {

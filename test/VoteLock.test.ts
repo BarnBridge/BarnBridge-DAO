@@ -3,14 +3,14 @@
 import { ethers } from 'hardhat';
 import { BigNumber, Contract, ContractFactory, Signer } from 'ethers';
 import * as helpers from './helpers';
-import * as _const from './const';
 import { expect } from 'chai';
+import { VoteLock } from '../typechain';
 
 describe('VoteLock', function () {
     const amount = BigNumber.from(100).mul(BigNumber.from(10).pow(18));
 
-    let dao:Contract, lock: Contract, bond: Contract;
-    let user: Signer;
+    let dao:Contract, lock: VoteLock, bond: Contract;
+    let user: Signer, userAddress:string;
     let snapshotId:any;
 
     beforeEach(async function () {
@@ -20,10 +20,11 @@ describe('VoteLock', function () {
         const loupeFacet = await helpers.deployLoupe();
 
         dao = await helpers.deployDiamond('BarnBridgeDAO', [lockFacet, loupeFacet]);
-        lock = await helpers.daoAsFacet(dao, _const.LOCK_FACET);
+        lock = await helpers.daoAsVoteLock(dao);
 
         const accounts = await ethers.getSigners();
         user = accounts[0];
+        userAddress = await user.getAddress();
 
         const ERC20Mock:ContractFactory = await ethers.getContractFactory('ERC20Mock');
         bond = await ERC20Mock.deploy();
@@ -59,7 +60,7 @@ describe('VoteLock', function () {
             await prepareBond(amount);
             await lock.connect(user).deposit(amount);
 
-            expect(await lock.balanceOf(user.getAddress())).to.equal(amount);
+            expect(await lock.balanceOf(userAddress)).to.equal(amount);
         });
     });
 
@@ -67,7 +68,7 @@ describe('VoteLock', function () {
         it('returns 0 if no checkpoint', async function () {
             const block = await helpers.getLatestBlock();
 
-            expect(await lock.balanceAtTs(user.getAddress(), block.timestamp)).to.be.equal(0);
+            expect(await lock.balanceAtTs(userAddress, block.timestamp)).to.be.equal(0);
         });
 
         it('returns 0 if timestamp older than first checkpoint', async function () {
@@ -76,7 +77,7 @@ describe('VoteLock', function () {
 
             const block = await helpers.getLatestBlock();
 
-            expect(await lock.balanceAtTs(user.getAddress(), block.timestamp-1)).to.be.equal(0);
+            expect(await lock.balanceAtTs(userAddress, block.timestamp-1)).to.be.equal(0);
         });
 
         it('return correct balance if timestamp newer than latest checkpoint', async function () {
@@ -85,7 +86,7 @@ describe('VoteLock', function () {
 
             const block = await helpers.getLatestBlock();
 
-            expect(await lock.balanceAtTs(user.getAddress(), block.timestamp - -1)).to.be.equal(amount);
+            expect(await lock.balanceAtTs(userAddress, block.timestamp - -1)).to.be.equal(amount);
         });
 
         it('returns correct balance if timestamp between checkpoints', async function () {
@@ -98,12 +99,12 @@ describe('VoteLock', function () {
             await helpers.moveAtTimestamp(ts+30);
             await lock.connect(user).deposit(amount);
 
-            expect(await lock.balanceAtTs(user.getAddress(), ts+15)).to.be.equal(amount);
+            expect(await lock.balanceAtTs(userAddress, ts+15)).to.be.equal(amount);
 
             await helpers.moveAtTimestamp(ts+60);
             await lock.connect(user).deposit(amount);
 
-            expect(await lock.balanceAtTs(user.getAddress(), ts+45)).to.be.equal(amount.mul(2));
+            expect(await lock.balanceAtTs(userAddress, ts+45)).to.be.equal(amount.mul(2));
         });
     });
 
@@ -118,7 +119,7 @@ describe('VoteLock', function () {
     });
 
     async function prepareBond (balance:BigNumber) {
-        await bond.mint(await user.getAddress(), balance);
+        await bond.mint(userAddress, balance);
         await bond.connect(user).approve(lock.address, balance);
     }
 });

@@ -3,6 +3,7 @@ import * as config from './config';
 import '@nomiclabs/hardhat-waffle';
 import '@nomiclabs/hardhat-etherscan';
 import 'hardhat-abi-exporter';
+import 'hardhat-typechain';
 
 // no support yet for the following
 // require('solidity-coverage')
