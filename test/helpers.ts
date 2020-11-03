@@ -1,14 +1,18 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { ethers } from 'hardhat';
-import { Contract, ContractFactory } from 'ethers';
+import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { VoteLock } from '../typechain';
 
-const FacetCutAction = {
+export const FacetCutAction = {
     Add: 0,
     Replace: 1,
     Remove: 2,
 };
+
+export const stakingEpochStart = 1603065600;
+export const stakingEpochDuration = 604800;
+export const tenPow18 = BigNumber.from(10).pow(18);
 
 function getSelectors (contract: Contract) {
     const signatures: string[] = Object.keys(contract.interface.functions);
@@ -77,4 +81,14 @@ export async function setNextBlockTimestamp (timestamp: number): Promise<void> {
 export async function moveAtTimestamp (timestamp: number): Promise<void> {
     await setNextBlockTimestamp(timestamp);
     await ethers.provider.send('evm_mine', []);
+}
+
+export async function getCurrentEpoch (): Promise<number> {
+    const currentBlockTs = parseInt((await getLatestBlock()).timestamp);
+
+    if (currentBlockTs < stakingEpochStart) {
+        return 0;
+    }
+
+    return Math.floor((currentBlockTs - stakingEpochStart) / stakingEpochDuration) + 1;
 }

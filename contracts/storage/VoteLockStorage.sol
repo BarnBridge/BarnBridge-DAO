@@ -15,6 +15,11 @@ contract VoteLockStorageContract {
 
     struct VoteLockStorage {
         IERC20 bond;
+
+        address communityVault;
+        address treasury;
+        uint256 otherBondLocked;
+
         mapping(address => Stake[]) balances;
     }
 

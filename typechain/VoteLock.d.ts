@@ -27,7 +27,7 @@ interface VoteLockInterface extends ethers.utils.Interface {
     "bondCirculatingSupply()": FunctionFragment;
     "delegate(address)": FunctionFragment;
     "deposit(uint256)": FunctionFragment;
-    "init(address)": FunctionFragment;
+    "init(address,address,address)": FunctionFragment;
     "lock(uint256)": FunctionFragment;
     "lockCreatorBalance(address,uint256)": FunctionFragment;
     "stopDelegate()": FunctionFragment;
@@ -50,7 +50,10 @@ interface VoteLockInterface extends ethers.utils.Interface {
     functionFragment: "deposit",
     values: [BigNumberish]
   ): string;
-  encodeFunctionData(functionFragment: "init", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "init",
+    values: [string, string, string]
+  ): string;
   encodeFunctionData(functionFragment: "lock", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "lockCreatorBalance",
@@ -180,10 +183,17 @@ export class VoteLock extends Contract {
       overrides?: Overrides
     ): Promise<ContractTransaction>;
 
-    init(bond: string, overrides?: Overrides): Promise<ContractTransaction>;
-
-    "init(address)"(
+    init(
       bond: string,
+      cv: string,
+      treasury: string,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "init(address,address,address)"(
+      bond: string,
+      cv: string,
+      treasury: string,
       overrides?: Overrides
     ): Promise<ContractTransaction>;
 
@@ -294,10 +304,17 @@ export class VoteLock extends Contract {
     overrides?: Overrides
   ): Promise<ContractTransaction>;
 
-  init(bond: string, overrides?: Overrides): Promise<ContractTransaction>;
-
-  "init(address)"(
+  init(
     bond: string,
+    cv: string,
+    treasury: string,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "init(address,address,address)"(
+    bond: string,
+    cv: string,
+    treasury: string,
     overrides?: Overrides
   ): Promise<ContractTransaction>;
 
@@ -394,9 +411,19 @@ export class VoteLock extends Contract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    init(bond: string, overrides?: CallOverrides): Promise<void>;
+    init(
+      bond: string,
+      cv: string,
+      treasury: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
-    "init(address)"(bond: string, overrides?: CallOverrides): Promise<void>;
+    "init(address,address,address)"(
+      bond: string,
+      cv: string,
+      treasury: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     lock(timestamp: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
@@ -488,9 +515,19 @@ export class VoteLock extends Contract {
       overrides?: Overrides
     ): Promise<BigNumber>;
 
-    init(bond: string, overrides?: Overrides): Promise<BigNumber>;
+    init(
+      bond: string,
+      cv: string,
+      treasury: string,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
 
-    "init(address)"(bond: string, overrides?: Overrides): Promise<BigNumber>;
+    "init(address,address,address)"(
+      bond: string,
+      cv: string,
+      treasury: string,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
 
     lock(timestamp: BigNumberish, overrides?: Overrides): Promise<BigNumber>;
 
@@ -593,10 +630,17 @@ export class VoteLock extends Contract {
       overrides?: Overrides
     ): Promise<PopulatedTransaction>;
 
-    init(bond: string, overrides?: Overrides): Promise<PopulatedTransaction>;
-
-    "init(address)"(
+    init(
       bond: string,
+      cv: string,
+      treasury: string,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "init(address,address,address)"(
+      bond: string,
+      cv: string,
+      treasury: string,
       overrides?: Overrides
     ): Promise<PopulatedTransaction>;
 
