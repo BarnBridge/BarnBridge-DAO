@@ -2,11 +2,12 @@
 pragma solidity ^0.7.1;
 pragma experimental ABIEncoderV2;
 
-import "../interfaces/IVoteLock.sol";
-import "../storage/VoteLockStorage.sol";
+import "./interfaces/IVoteLock.sol";
 import "hardhat/console.sol";
 
-contract VoteLock is IVoteLock, VoteLockStorageContract {
+contract VoteLock is IVoteLock {
+    mapping(address => uint256) balances;
+
     // todo: TBD if we want to add something like `depositAndLock` to avoid making 2 transactions to lock some BOND
 
     // deposit allows a user to add more bond to his staked balance
@@ -60,8 +61,6 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
     }
 
     function balanceOf(address user) public view returns (uint256){
-        VoteLockStorage storage ds = voteLockStorage();
-
-        return ds.balances[user];
+        return balances[user];
     }
 }

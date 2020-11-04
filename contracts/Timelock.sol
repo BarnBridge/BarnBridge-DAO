@@ -1,29 +1,23 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.7.1;
 
-import "../storage/TimelockStorage.sol";
 
-contract TimelockFacet is TimelockStorageContract {
+contract Timelock  {
     uint constant GRACE_PERIOD = 2 days;
+
+    mapping (bytes32 => bool) public queuedTransactions;
 
 
     function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public returns (bytes32) {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        TimelockStorage storage ts = timelockStorage();
 
-        ts.queuedTransactions[txHash] = true;
+        queuedTransactions[txHash] = true;
         return txHash;
-    }
-
-    function queuedTransactions (bytes32 txHash) public view returns (bool) {
-        TimelockStorage storage ts = timelockStorage();
-        return ts.queuedTransactions[txHash];
     }
 
     function cancelTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        TimelockStorage storage ts = timelockStorage();
-        ts.queuedTransactions[txHash] = false;
+        queuedTransactions[txHash] = false;
     }
 
 
@@ -31,9 +25,8 @@ contract TimelockFacet is TimelockStorageContract {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         require(getBlockTimestamp() >= eta, "Timelock::executeTransaction: Transaction hasn't surpassed time lock.");
         require(getBlockTimestamp() <= eta + GRACE_PERIOD, "Timelock::executeTransaction: Transaction is stale.");
-        TimelockStorage storage ts = timelockStorage();
 
-        ts.queuedTransactions[txHash] = false;
+        queuedTransactions[txHash] = false;
 
         bytes memory callData;
 
