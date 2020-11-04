@@ -3,25 +3,16 @@
 import { ethers } from 'hardhat';
 import { BigNumber, Contract, Signer } from 'ethers';
 import * as helpers from './helpers';
-import * as _const from './const';
 import { expect } from 'chai';
 
 describe('VoteLock', function () {
     const amount = BigNumber.from(100).mul(BigNumber.from(10).pow(18));
 
-    let dao:Contract, lock: Contract;
+    let lock: Contract;
     let user: Signer;
 
     before(async function () {
-        const lockFacet = await helpers.deployVoteLock();
-        const loupeFacet = await helpers.deployLoupe();
-
-        console.log('Lock facet deployed at:', lockFacet.address);
-
-        dao = await helpers.deployDiamond('BarnBridgeDAO', [lockFacet, loupeFacet]);
-        lock = await helpers.daoAsFacet(dao, _const.LOCK_FACET);
-
-        console.log('DAO deployed at:', dao.address);
+        lock = await helpers.deployVoteLock();
 
         const accounts = await ethers.getSigners();
         user = accounts[0];
@@ -29,7 +20,7 @@ describe('VoteLock', function () {
 
     describe('General tests', function () {
         it('should be deployed', async function () {
-            expect(dao.address).to.not.equal(0);
+            expect(lock.address).to.not.equal(0);
         });
     });
 
