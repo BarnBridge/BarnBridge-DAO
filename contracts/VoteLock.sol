@@ -2,13 +2,13 @@
 pragma solidity ^0.7.1;
 pragma experimental ABIEncoderV2;
 
-import "../interfaces/IVoteLock.sol";
-import "../storage/VoteLockStorage.sol";
+import "./interfaces/IVoteLock.sol";
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // todo: TBD if we want to add something like `depositAndLock` to avoid making 2 transactions to lock some BOND
-contract VoteLock is IVoteLock, VoteLockStorageContract {
+contract VoteLock is IVoteLock {
     using SafeMath for uint256;
 
     uint256 constant TOTAL_VESTING_BOND = 2_200_000e18;
@@ -18,25 +18,35 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
     uint256 constant VESTING_EPOCH_DURATION = 604800;
     uint256 constant TOTAL_BOND = 10_000_000e18;
 
-    function init(address bond, address cv, address treasury) public {
-        VoteLockStorage storage ds = voteLockStorage();
+    struct Stake {
+        uint256 timestamp;
+        uint256 amount;
+        uint256 expiryTimestamp;
+    }
 
-        ds.bond = IERC20(bond);
-        ds.communityVault = cv;
-        ds.treasury = treasury;
-        ds.otherBondLocked = 500_000e18;
+    IERC20 bond;
+
+    address communityVault;
+    address treasury;
+    uint256 otherBondLocked;
+
+    mapping(address => Stake[]) balances;
+
+    constructor(address _bond, address _cv, address _treasury) public {
+        bond = IERC20(_bond);
+        communityVault = _cv;
+        treasury = _treasury;
+        otherBondLocked = 500_000e18;
     }
 
     // deposit allows a user to add more bond to his staked balance
     function deposit(uint256 amount) override public {
         require(amount > 0, "Amount must be greater than 0");
 
-        VoteLockStorage storage ds = voteLockStorage();
-
-        uint256 allowance = ds.bond.allowance(msg.sender, address(this));
+        uint256 allowance = bond.allowance(msg.sender, address(this));
         require(allowance >= amount, "Token allowance too small");
 
-        Stake[] storage checkpoints = ds.balances[msg.sender];
+        Stake[] storage checkpoints = balances[msg.sender];
         uint256 numCheckpoints = checkpoints.length;
 
         if (numCheckpoints == 0) {
@@ -44,7 +54,7 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
             checkpoints.push(Stake(block.timestamp, amount, block.timestamp));
         } else {
             // the user already has a stake checkpoint; use that as base for the new checkpoint
-            Stake storage oldStake = ds.balances[msg.sender][numCheckpoints - 1];
+            Stake storage oldStake = balances[msg.sender][numCheckpoints - 1];
 
             if (oldStake.timestamp == block.timestamp) {
                 oldStake.amount = oldStake.amount.add(amount);
@@ -53,7 +63,7 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
             }
         }
 
-        ds.bond.transferFrom(msg.sender, address(this), amount);
+        bond.transferFrom(msg.sender, address(this), amount);
     }
 
     // withdraw allows a user to withdraw funds if the balance is not locked
@@ -65,12 +75,10 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
 
         // todo: don't let the user withdraw if balance is locked
 
-        VoteLockStorage storage ds = voteLockStorage();
-
-        Stake[] storage checkpoints = ds.balances[msg.sender];
+        Stake[] storage checkpoints = balances[msg.sender];
         uint256 numCheckpoints = checkpoints.length;
 
-        Stake storage oldStake = ds.balances[msg.sender][numCheckpoints - 1];
+        Stake storage oldStake = balances[msg.sender][numCheckpoints - 1];
         uint256 newBalance = oldStake.amount.sub(amount);
 
         // if the user already has a checkpoint for the current block, update that one;
@@ -81,7 +89,7 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
             checkpoints.push(Stake(block.timestamp, newBalance, oldStake.expiryTimestamp));
         }
 
-        ds.bond.transfer(msg.sender, amount);
+        bond.transfer(msg.sender, amount);
     }
 
     // lock a user's currently staked balance until timestamp & add the bonus to his voting power
@@ -106,9 +114,7 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
 
     // balanceAtTs returns the amount of BOND that the user currently staked (bonus NOT included)
     function balanceAtTs(address user, uint256 timestamp) override public view returns (uint256) {
-        VoteLockStorage storage ds = voteLockStorage();
-
-        Stake[] storage checkpoints = ds.balances[msg.sender];
+        Stake[] storage checkpoints = balances[msg.sender];
 
         if (checkpoints.length == 0 || timestamp < checkpoints[0].timestamp) {
             return 0;
@@ -146,18 +152,16 @@ contract VoteLock is IVoteLock, VoteLockStorageContract {
 
     // bondCirculatingSupply returns the current circulating supply of BOND
     function bondCirculatingSupply() override public view returns (uint256) {
-        VoteLockStorage storage ds = voteLockStorage();
-
         uint256 completedVestingEpochs = (block.timestamp - VESTING_START) / VESTING_EPOCH_DURATION;
         if (completedVestingEpochs > VESTING_PERIOD) {
             completedVestingEpochs = VESTING_PERIOD;
         }
 
         uint256 totalVested = TOTAL_VESTING_BOND.sub(VESTING_BOND_PER_EPOCH * completedVestingEpochs);
-        uint256 lockedCommunityVault = ds.bond.balanceOf(ds.communityVault);
-        uint256 lockedTreasury = ds.bond.balanceOf(ds.treasury);
+        uint256 lockedCommunityVault = bond.balanceOf(communityVault);
+        uint256 lockedTreasury = bond.balanceOf(treasury);
 
-        return TOTAL_BOND.sub(totalVested).sub(lockedCommunityVault).sub(lockedTreasury).sub(ds.otherBondLocked);
+        return TOTAL_BOND.sub(totalVested).sub(lockedCommunityVault).sub(lockedTreasury).sub(otherBondLocked);
     }
 
     function balanceOf(address user) public view returns (uint256) {

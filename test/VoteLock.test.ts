@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { ethers } from 'hardhat';
-import { BigNumber, Contract, ContractFactory, Signer } from 'ethers';
+import { BigNumber, Signer } from 'ethers';
 import * as helpers from './helpers';
 import { expect } from 'chai';
 import { Erc20Mock, VoteLock } from '../typechain';
@@ -9,7 +9,7 @@ import { Erc20Mock, VoteLock } from '../typechain';
 describe('VoteLock', function () {
     const amount = BigNumber.from(100).mul(BigNumber.from(10).pow(18));
 
-    let dao: Contract, lock: VoteLock, bond: Erc20Mock;
+    let lock: VoteLock, bond: Erc20Mock;
     let user: Signer, userAddress: string;
     let communityVault: Signer, treasury: Signer;
     let snapshotId: any;
@@ -17,23 +17,14 @@ describe('VoteLock', function () {
     beforeEach(async function () {
         snapshotId = await ethers.provider.send('evm_snapshot', []);
 
-        const lockFacet = await helpers.deployVoteLock();
-        const loupeFacet = await helpers.deployLoupe();
+        await setupSigners();
+        bond = await helpers.deployBond();
 
-        dao = await helpers.deployDiamond('BarnBridgeDAO', [lockFacet, loupeFacet]);
-        lock = await helpers.daoAsVoteLock(dao);
-
-        const accounts = await ethers.getSigners();
-        user = accounts[0];
-        communityVault = accounts[1];
-        treasury = accounts[2];
-        userAddress = await user.getAddress();
-
-        const ERC20Mock: ContractFactory = await ethers.getContractFactory('ERC20Mock');
-        bond = (await ERC20Mock.deploy()) as Erc20Mock;
-        await bond.deployed();
-
-        await lock.init(bond.address, await communityVault.getAddress(), await treasury.getAddress());
+        lock = await helpers.deployVoteLock(
+            bond.address,
+            await communityVault.getAddress(),
+            await treasury.getAddress()
+        );
     });
 
     afterEach(async function () {
@@ -42,13 +33,7 @@ describe('VoteLock', function () {
 
     describe('General tests', function () {
         it('should be deployed', async function () {
-            expect(dao.address).to.not.equal(0);
-        });
-
-        it('should have init function', async function () {
-            await expect(
-                lock.init(bond.address, await communityVault.getAddress(), await treasury.getAddress())
-            ).to.not.be.reverted;
+            expect(lock.address).to.not.equal(0);
         });
     });
 
@@ -176,6 +161,14 @@ describe('VoteLock', function () {
             expect(await lock.bondCirculatingSupply()).to.be.equal(expectedValue);
         });
     });
+
+    async function setupSigners () {
+        const accounts = await ethers.getSigners();
+        user = accounts[0];
+        communityVault = accounts[1];
+        treasury = accounts[2];
+        userAddress = await user.getAddress();
+    }
 
     async function setupContracts () {
         const cvValue = BigNumber.from(2800000).mul(helpers.tenPow18);

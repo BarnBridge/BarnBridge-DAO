@@ -3,13 +3,7 @@
 /* eslint-disable */
 export { Erc20Factory } from "./Erc20Factory";
 export type { Erc20 } from "./Erc20";
-export { BarnBridgeDaoFactory } from "./BarnBridgeDaoFactory";
-export type { BarnBridgeDao } from "./BarnBridgeDao";
-export { DiamondLoupeFacetFactory } from "./DiamondLoupeFacetFactory";
-export type { DiamondLoupeFacet } from "./DiamondLoupeFacet";
-export { VoteLockFactory } from "./VoteLockFactory";
-export type { VoteLock } from "./VoteLock";
-export { DiamondFactory } from "./DiamondFactory";
-export type { Diamond } from "./Diamond";
 export { Erc20MockFactory } from "./Erc20MockFactory";
 export type { Erc20Mock } from "./Erc20Mock";
+export { VoteLockFactory } from "./VoteLockFactory";
+export type { VoteLock } from "./VoteLock";
