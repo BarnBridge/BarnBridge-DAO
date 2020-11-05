@@ -32,7 +32,7 @@ contract VoteLock is IVoteLock {
 
     mapping(address => Stake[]) balances;
 
-    constructor(address _bond, address _cv, address _treasury) public {
+    constructor(address _bond, address _cv, address _treasury) {
         bond = IERC20(_bond);
         communityVault = _cv;
         treasury = _treasury;
@@ -114,7 +114,7 @@ contract VoteLock is IVoteLock {
 
     // balanceAtTs returns the amount of BOND that the user currently staked (bonus NOT included)
     function balanceAtTs(address user, uint256 timestamp) override public view returns (uint256) {
-        Stake[] storage checkpoints = balances[msg.sender];
+        Stake[] storage checkpoints = balances[user];
 
         if (checkpoints.length == 0 || timestamp < checkpoints[0].timestamp) {
             return 0;
