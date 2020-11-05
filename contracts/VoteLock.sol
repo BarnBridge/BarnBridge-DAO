@@ -17,6 +17,9 @@ contract VoteLock is IVoteLock {
     uint256 constant VESTING_START = 1603065600;
     uint256 constant VESTING_EPOCH_DURATION = 604800;
     uint256 constant TOTAL_BOND = 10_000_000e18;
+    uint256 constant MAX_LOCK = 365 days;
+
+    uint256 constant BASE_MULTIPLIER = 1e18;
 
     struct Stake {
         uint256 timestamp;
@@ -94,7 +97,13 @@ contract VoteLock is IVoteLock {
 
     // lock a user's currently staked balance until timestamp & add the bonus to his voting power
     function lock(uint256 timestamp) override public {
+        require(timestamp <= block.timestamp + MAX_LOCK, "timestamp too big");
+        require(balanceOf(msg.sender) > 0, "sender has no balance");
 
+        Stake[] storage checkpoints = balances[msg.sender];
+        Stake storage currentStake = checkpoints[checkpoints.length-1];
+
+        checkpoints.push(Stake(block.timestamp, currentStake.amount, timestamp));
     }
 
     // delegate allows a user to delegate his voting power to another user
@@ -114,22 +123,28 @@ contract VoteLock is IVoteLock {
 
     // balanceAtTs returns the amount of BOND that the user currently staked (bonus NOT included)
     function balanceAtTs(address user, uint256 timestamp) override public view returns (uint256) {
+        Stake memory stake = stakeAtTs(user, timestamp);
+
+        return stake.amount;
+    }
+
+    function stakeAtTs(address user, uint256 timestamp) public view returns (Stake memory) {
         Stake[] storage checkpoints = balances[user];
 
         if (checkpoints.length == 0 || timestamp < checkpoints[0].timestamp) {
-            return 0;
+            return Stake(block.timestamp, 0, block.timestamp);
         }
 
         uint256 min = 0;
         uint256 max = checkpoints.length - 1;
 
         if (timestamp >= checkpoints[max].timestamp) {
-            return checkpoints[max].amount;
+            return checkpoints[max];
         }
 
         // binary search of the value in the array
         while (max > min) {
-            uint mid = (max + min + 1) / 2;
+            uint256 mid = (max + min + 1) / 2;
             if (checkpoints[mid].timestamp <= timestamp) {
                 min = mid;
             } else {
@@ -137,7 +152,7 @@ contract VoteLock is IVoteLock {
             }
         }
 
-        return checkpoints[min].amount;
+        return checkpoints[min];
     }
 
     // votingPowerAtTs returns the voting power (bonus included) + delegated voting power for a user at a point in time
@@ -166,5 +181,19 @@ contract VoteLock is IVoteLock {
 
     function balanceOf(address user) public view returns (uint256) {
         return balanceAtTs(user, block.timestamp);
+    }
+
+    function multiplierAtTs(address user, uint256 timestamp) public view returns (uint256) {
+        Stake memory stake = stakeAtTs(user, timestamp);
+
+        uint256 timeLeft;
+
+        if (block.timestamp >= stake.expiryTimestamp) {
+            return BASE_MULTIPLIER;
+        } else {
+            timeLeft = stake.expiryTimestamp - block.timestamp;
+        }
+
+        return timeLeft * BASE_MULTIPLIER / MAX_LOCK + BASE_MULTIPLIER;
     }
 }

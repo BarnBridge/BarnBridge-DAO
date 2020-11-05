@@ -29,6 +29,8 @@ interface VoteLockInterface extends ethers.utils.Interface {
     "deposit(uint256)": FunctionFragment;
     "lock(uint256)": FunctionFragment;
     "lockCreatorBalance(address,uint256)": FunctionFragment;
+    "multiplierAtTs(address,uint256)": FunctionFragment;
+    "stakeAtTs(address,uint256)": FunctionFragment;
     "stopDelegate()": FunctionFragment;
     "totalVotingPowerAtTs(uint256)": FunctionFragment;
     "votingPowerAtTs(address,uint256)": FunctionFragment;
@@ -52,6 +54,14 @@ interface VoteLockInterface extends ethers.utils.Interface {
   encodeFunctionData(functionFragment: "lock", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "lockCreatorBalance",
+    values: [string, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "multiplierAtTs",
+    values: [string, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "stakeAtTs",
     values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
@@ -87,6 +97,11 @@ interface VoteLockInterface extends ethers.utils.Interface {
     functionFragment: "lockCreatorBalance",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "multiplierAtTs",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "stakeAtTs", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "stopDelegate",
     data: BytesLike
@@ -199,6 +214,52 @@ export class VoteLock extends Contract {
       overrides?: Overrides
     ): Promise<ContractTransaction>;
 
+    multiplierAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "multiplierAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    stakeAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: {
+        timestamp: BigNumber;
+        amount: BigNumber;
+        expiryTimestamp: BigNumber;
+        0: BigNumber;
+        1: BigNumber;
+        2: BigNumber;
+      };
+    }>;
+
+    "stakeAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: {
+        timestamp: BigNumber;
+        amount: BigNumber;
+        expiryTimestamp: BigNumber;
+        0: BigNumber;
+        1: BigNumber;
+        2: BigNumber;
+      };
+    }>;
+
     stopDelegate(overrides?: Overrides): Promise<ContractTransaction>;
 
     "stopDelegate()"(overrides?: Overrides): Promise<ContractTransaction>;
@@ -306,6 +367,44 @@ export class VoteLock extends Contract {
     overrides?: Overrides
   ): Promise<ContractTransaction>;
 
+  multiplierAtTs(
+    user: string,
+    timestamp: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  "multiplierAtTs(address,uint256)"(
+    user: string,
+    timestamp: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  stakeAtTs(
+    user: string,
+    timestamp: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<{
+    timestamp: BigNumber;
+    amount: BigNumber;
+    expiryTimestamp: BigNumber;
+    0: BigNumber;
+    1: BigNumber;
+    2: BigNumber;
+  }>;
+
+  "stakeAtTs(address,uint256)"(
+    user: string,
+    timestamp: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<{
+    timestamp: BigNumber;
+    amount: BigNumber;
+    expiryTimestamp: BigNumber;
+    0: BigNumber;
+    1: BigNumber;
+    2: BigNumber;
+  }>;
+
   stopDelegate(overrides?: Overrides): Promise<ContractTransaction>;
 
   "stopDelegate()"(overrides?: Overrides): Promise<ContractTransaction>;
@@ -396,6 +495,44 @@ export class VoteLock extends Contract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    multiplierAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "multiplierAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    stakeAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      timestamp: BigNumber;
+      amount: BigNumber;
+      expiryTimestamp: BigNumber;
+      0: BigNumber;
+      1: BigNumber;
+      2: BigNumber;
+    }>;
+
+    "stakeAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      timestamp: BigNumber;
+      amount: BigNumber;
+      expiryTimestamp: BigNumber;
+      0: BigNumber;
+      1: BigNumber;
+      2: BigNumber;
+    }>;
+
     stopDelegate(overrides?: CallOverrides): Promise<void>;
 
     "stopDelegate()"(overrides?: CallOverrides): Promise<void>;
@@ -484,6 +621,30 @@ export class VoteLock extends Contract {
       user: string,
       timestamp: BigNumberish,
       overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    multiplierAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "multiplierAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    stakeAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "stakeAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     stopDelegate(overrides?: Overrides): Promise<BigNumber>;
@@ -588,6 +749,30 @@ export class VoteLock extends Contract {
       user: string,
       timestamp: BigNumberish,
       overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    multiplierAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "multiplierAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    stakeAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "stakeAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     stopDelegate(overrides?: Overrides): Promise<PopulatedTransaction>;
