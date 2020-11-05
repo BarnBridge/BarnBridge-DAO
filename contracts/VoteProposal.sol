@@ -140,6 +140,8 @@ contract VotingProposal {
 
         // emit here
 
+        // @TODO Emit
+
         // return result
         return lastProposalId;
     }
@@ -147,6 +149,7 @@ contract VotingProposal {
     function queue(uint proposalId) public {
         require(state(proposalId) == ProposalState.Accepted, "Proposal can only be queued if it is succeeded");
         Proposal storage proposal = proposals[proposalId];
+        require (proposal.canceled == false, "Cannot queue a canceled proposal");
 
         uint eta = proposal.startTime + ACTIVE + QUEUE;
 
@@ -154,6 +157,7 @@ contract VotingProposal {
             _queueOrRevert(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
         }
         proposal.eta = eta;
+        // @TODO Emit
     }
 
     function _queueOrRevert(address target, uint value, string memory signature, bytes memory data, uint eta) internal {
@@ -168,20 +172,21 @@ contract VotingProposal {
         for (uint i = 0; i < proposal.targets.length; i++) {
             timeLock.executeTransaction{value: proposal.values[i]}(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
+        // @TODO Emit
     }
 
     function cancel(uint proposalId) public {
         ProposalState state = state(proposalId);
-        require(state != ProposalState.Executed, "GovernorAlpha::cancel: cannot cancel executed proposal");
+        require(state != ProposalState.Executed, "Cannot cancel executed proposal");
+        require(state != ProposalState.Expired, "Cannot cancel expired proposal");
 
         Proposal storage proposal = proposals[proposalId];
-
+        require (proposal.proposer == msg.sender, "Only the proposal creator can cancel a proposal");
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
             timeLock.cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
-
-//        emit ProposalCanceled(proposalId);
+        // @TODO Emit
     }
 
 
@@ -243,7 +248,7 @@ contract VotingProposal {
         receipt.hasVoted = true;
         receipt.votes = votes;
         receipt.support = support;
-        // emit
+        // @TODO Emit
     }
 
     function _cancelVote(address voter, uint proposalId) internal {
