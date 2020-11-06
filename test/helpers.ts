@@ -2,7 +2,7 @@
 // @ts-ignore
 import { ethers } from 'hardhat';
 import { BigNumber, ContractFactory } from 'ethers';
-import { Erc20Mock, VoteLock } from '../typechain';
+import { Erc20Mock, VoteLock, Timelock, VoteProposal } from '../typechain';
 
 export const stakingEpochStart = 1603065600;
 export const stakingEpochDuration = 604800;
@@ -14,6 +14,22 @@ export async function deployVoteLock (bond:string, cv:string, treasury:string): 
     await lock.deployed();
 
     return lock;
+}
+
+export async function deployTimelock (): Promise<Timelock> {
+    const Timelock: ContractFactory = await ethers.getContractFactory('Timelock');
+    const lock: Timelock = (await Timelock.deploy()) as Timelock;
+    await lock.deployed();
+
+    return lock;
+}
+
+export async function deployVoteProposal (voteLock:string, timeLock:string): Promise<VoteProposal> {
+    const VoteProposal: ContractFactory = await ethers.getContractFactory('VoteProposal');
+    const voteProposal: VoteProposal = (await VoteProposal.deploy(voteLock, timeLock)) as VoteProposal;
+    await voteProposal.deployed();
+
+    return voteProposal;
 }
 
 export async function deployBond ():Promise<Erc20Mock> {

@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IVoteLock.sol";
 import "./interfaces/ITimeLock.sol";
 
-contract VotingProposal {
+contract VoteProposal {
 
     uint constant WARM_UP = 2 days;
     uint constant ACTIVE = 2 days;
