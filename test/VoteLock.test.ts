@@ -3,10 +3,10 @@
 import { ethers } from 'hardhat';
 import { BigNumber, Signer } from 'ethers';
 import * as helpers from './helpers';
+import { setNextBlockTimestamp } from './helpers';
 import { expect } from 'chai';
 import { Erc20Mock, VoteLock } from '../typechain';
 import * as time from './time';
-import { tenPow18 } from './helpers';
 
 describe('VoteLock', function () {
     const amount = BigNumber.from(100).mul(BigNumber.from(10).pow(18));
@@ -62,39 +62,44 @@ describe('VoteLock', function () {
             expect(await bond.transferFromCalled()).to.be.true;
             expect(await bond.balanceOf(voteLock.address)).to.be.equal(amount);
         });
+
+        it('updates the total of bond locked', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+
+            expect(await voteLock.bondStaked()).to.be.equal(amount);
+        });
     });
 
     describe('balanceAtTs', function () {
         it('returns 0 if no checkpoint', async function () {
-            const block = await helpers.getLatestBlock();
-
-            expect(await voteLock.balanceAtTs(userAddress, block.timestamp)).to.be.equal(0);
+            const ts = await helpers.getLatestBlockTimestamp();
+            expect(await voteLock.balanceAtTs(userAddress, ts)).to.be.equal(0);
         });
 
         it('returns 0 if timestamp older than first checkpoint', async function () {
             await prepareAccount(user, amount);
             await voteLock.connect(user).deposit(amount);
 
-            const block = await helpers.getLatestBlock();
+            const ts = await helpers.getLatestBlockTimestamp();
 
-            expect(await voteLock.balanceAtTs(userAddress, block.timestamp - 1)).to.be.equal(0);
+            expect(await voteLock.balanceAtTs(userAddress, ts - 1)).to.be.equal(0);
         });
 
         it('return correct balance if timestamp newer than latest checkpoint', async function () {
             await prepareAccount(user, amount);
             await voteLock.connect(user).deposit(amount);
 
-            const block = await helpers.getLatestBlock();
+            const ts = await helpers.getLatestBlockTimestamp();
 
-            expect(await voteLock.balanceAtTs(userAddress, block.timestamp - -1)).to.be.equal(amount);
+            expect(await voteLock.balanceAtTs(userAddress, ts + 1)).to.be.equal(amount);
         });
 
         it('returns correct balance if timestamp between checkpoints', async function () {
             await prepareAccount(user, amount.mul(3));
             await voteLock.connect(user).deposit(amount);
 
-            const block = await helpers.getLatestBlock();
-            const ts = parseInt(block.timestamp);
+            const ts = await helpers.getLatestBlockTimestamp();
 
             await helpers.moveAtTimestamp(ts + 30);
             await voteLock.connect(user).deposit(amount);
@@ -105,6 +110,48 @@ describe('VoteLock', function () {
             await voteLock.connect(user).deposit(amount);
 
             expect(await voteLock.balanceAtTs(userAddress, ts + 45)).to.be.equal(amount.mul(2));
+        });
+    });
+
+    describe('bondStakedAtTs', function () {
+        it('returns 0 if no checkpoint', async function () {
+            const ts = await helpers.getLatestBlockTimestamp();
+            expect(await voteLock.bondStakedAtTs(ts)).to.be.equal(0);
+        });
+
+        it('returns 0 if timestamp older than first checkpoint', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+
+            const ts = await helpers.getLatestBlockTimestamp();
+
+            expect(await voteLock.bondStakedAtTs(ts - 1)).to.be.equal(0);
+        });
+
+        it('returns correct balance if timestamp newer than latest checkpoint', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+
+            const ts = await helpers.getLatestBlockTimestamp();
+
+            expect(await voteLock.bondStakedAtTs(ts + 1)).to.be.equal(amount);
+        });
+
+        it('returns correct balance if timestamp between checkpoints', async function () {
+            await prepareAccount(user, amount.mul(3));
+            await voteLock.connect(user).deposit(amount);
+
+            const ts = await helpers.getLatestBlockTimestamp();
+
+            await helpers.moveAtTimestamp(ts + 30);
+            await voteLock.connect(user).deposit(amount);
+
+            expect(await voteLock.bondStakedAtTs(ts + 15)).to.be.equal(amount);
+
+            await helpers.moveAtTimestamp(ts + 60);
+            await voteLock.connect(user).deposit(amount);
+
+            expect(await voteLock.bondStakedAtTs(ts + 45)).to.be.equal(amount.mul(2));
         });
     });
 
@@ -129,14 +176,14 @@ describe('VoteLock', function () {
             await prepareAccount(user, amount);
             await voteLock.connect(user).deposit(amount);
 
-            const currentTs = parseInt((await helpers.getLatestBlock()).timestamp);
+            const currentTs = await helpers.getLatestBlockTimestamp();
             await helpers.moveAtTimestamp(currentTs + 15);
 
             await voteLock.connect(user).withdraw(amount);
 
-            const block = await helpers.getLatestBlock();
+            const ts = await helpers.getLatestBlockTimestamp();
 
-            expect(await voteLock.balanceAtTs(userAddress, parseInt(block.timestamp) - 1)).to.be.equal(amount);
+            expect(await voteLock.balanceAtTs(userAddress, ts - 1)).to.be.equal(amount);
         });
 
         it('transfers balance to the user', async function () {
@@ -150,6 +197,15 @@ describe('VoteLock', function () {
             expect(await bond.transferCalled()).to.be.true;
             expect(await bond.balanceOf(userAddress)).to.be.equal(amount);
             expect(await bond.balanceOf(voteLock.address)).to.be.equal(amount);
+        });
+
+        it('updates the total of bond locked', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+            expect(await voteLock.bondStaked()).to.be.equal(amount);
+
+            await voteLock.connect(user).withdraw(amount);
+            expect(await voteLock.bondStaked()).to.be.equal(0);
         });
     });
 
@@ -165,23 +221,82 @@ describe('VoteLock', function () {
     });
 
     describe('lock', async function () {
-        it('reverts if timestamp is more than 1 year away', async function () {
+        it('reverts if timestamp is more than MAX_LOCK', async function () {
             await prepareAccount(user, amount);
             await voteLock.connect(user).deposit(amount);
 
-            await expect(
-                voteLock.connect(user).lock(time.futureTimestamp(5*time.year))
-            ).to.be.revertedWith('timestamp too big');
+            const MAX_LOCK = (await voteLock.MAX_LOCK()).toNumber();
 
             await expect(
-                voteLock.connect(user).lock(time.futureTimestamp(180*time.day))
+                voteLock.connect(user).lock(time.futureTimestamp(5 * MAX_LOCK))
+            ).to.be.revertedWith('Timestamp too big');
+
+            await expect(
+                voteLock.connect(user).lock(time.futureTimestamp(180 * time.day))
             ).to.not.be.reverted;
         });
 
         it('reverts if user does not have balance', async function () {
             await expect(
-                voteLock.connect(user).lock(time.futureTimestamp(10*time.day))
-            ).to.be.revertedWith('sender has no balance');
+                voteLock.connect(user).lock(time.futureTimestamp(10 * time.day))
+            ).to.be.revertedWith('Sender has no balance');
+        });
+
+        it('reverts if user already has a lock and timestamp is lower', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+            await voteLock.connect(user).lock(time.futureTimestamp(1 * time.year));
+
+            await expect(
+                voteLock.connect(user).lock(time.futureTimestamp(5 * time.day))
+            ).to.be.revertedWith('New timestamp lower than current lock timestamp');
+        });
+
+        it('sets lock correctly', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+
+            const expiryTs = time.futureTimestamp(1 * time.year);
+            await voteLock.connect(user).lock(expiryTs);
+
+            expect(await voteLock.userLock(userAddress)).to.be.equal(expiryTs);
+        });
+
+        it('allows user to increase lock', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+
+            await voteLock.connect(user).lock(time.futureTimestamp(30 * time.day));
+
+            const expiryTs = time.futureTimestamp(1 * time.year);
+            await expect(voteLock.connect(user).lock(expiryTs)).to.not.be.reverted;
+            expect(await voteLock.userLock(userAddress)).to.be.equal(expiryTs);
+        });
+
+        it('does not block deposits for user', async function () {
+            await prepareAccount(user, amount.mul(2));
+            await voteLock.connect(user).deposit(amount);
+
+            await voteLock.connect(user).lock(time.futureTimestamp(30 * time.day));
+
+            await expect(voteLock.connect(user).deposit(amount)).to.not.be.reverted;
+            expect(await voteLock.balanceOf(userAddress)).to.be.equal(amount.mul(2));
+        });
+
+        it('blocks withdrawals for user during lock', async function () {
+            await prepareAccount(user, amount.mul(2));
+            await voteLock.connect(user).deposit(amount);
+
+            const expiryTs = time.futureTimestamp(30 * time.day);
+            await voteLock.connect(user).lock(expiryTs);
+
+            await expect(voteLock.connect(user).withdraw(amount)).to.be.revertedWith('User balance is locked');
+            expect(await voteLock.balanceOf(userAddress)).to.be.equal(amount);
+
+            await helpers.setNextBlockTimestamp(expiryTs + 3600);
+
+            await expect(voteLock.connect(user).withdraw(amount)).to.not.be.reverted;
+            expect(await voteLock.balanceOf(userAddress)).to.be.equal(0);
         });
     });
 
@@ -190,23 +305,115 @@ describe('VoteLock', function () {
             await prepareAccount(user, amount);
             await voteLock.connect(user).deposit(amount);
 
-            let ts:number = time.getUnixTimestamp();
-            await helpers.setNextBlockTimestamp(ts+5);
+            let ts: number = time.getUnixTimestamp();
+            await helpers.setNextBlockTimestamp(ts + 5);
 
             const lockExpiryTs = ts + 5 + time.year;
             await voteLock.connect(user).lock(lockExpiryTs);
 
-            ts = parseInt((await helpers.getLatestBlock()).timestamp);
+            ts = await helpers.getLatestBlockTimestamp();
 
-            const expectedMultiplier = BigNumber.from(lockExpiryTs-ts)
-                .mul(helpers.tenPow18)
-                .div(time.year)
-                .add(helpers.tenPow18);
+            const expectedMultiplier = multiplierAtTs(lockExpiryTs, ts);
             const actualMultiplier = await voteLock.multiplierAtTs(userAddress, ts);
 
             expect(
                 actualMultiplier
             ).to.be.equal(expectedMultiplier);
+        });
+    });
+
+    describe('votingPower', async function () {
+        it('returns raw balance if user did not lock', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+
+            expect(await voteLock.votingPower(userAddress)).to.be.equal(amount);
+        });
+
+        it('returns adjusted balance if user locked bond', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+
+            const expiryTs = time.futureTimestamp(time.year);
+            await voteLock.connect(user).lock(expiryTs);
+
+            const blockTs = await helpers.getLatestBlockTimestamp();
+
+            expect(
+                await voteLock.votingPower(userAddress)
+            ).to.be.equal(
+                amount.mul(multiplierAtTs(expiryTs, blockTs)).div(helpers.tenPow18)
+            );
+        });
+    });
+
+    describe('votingPowerAtTs', async function () {
+        it('returns correct balance with no lock', async function () {
+            await prepareAccount(user, amount.mul(2));
+            await voteLock.connect(user).deposit(amount);
+
+            const firstDepositTs = await helpers.getLatestBlockTimestamp();
+
+            await helpers.setNextBlockTimestamp(time.futureTimestamp(30 * time.day));
+            await voteLock.connect(user).deposit(amount);
+
+            const secondDepositTs = await helpers.getLatestBlockTimestamp();
+
+            expect(await voteLock.votingPowerAtTs(userAddress, firstDepositTs - 10)).to.be.equal(0);
+            expect(await voteLock.votingPowerAtTs(userAddress, firstDepositTs + 10)).to.be.equal(amount);
+            expect(await voteLock.votingPowerAtTs(userAddress, secondDepositTs - 10)).to.be.equal(amount);
+            expect(await voteLock.votingPowerAtTs(userAddress, secondDepositTs + 10)).to.be.equal(amount.mul(2));
+        });
+
+        it('returns correct balance with lock', async function () {
+            await prepareAccount(user, amount.mul(2));
+
+            await voteLock.connect(user).deposit(amount);
+            const firstDepositTs = await helpers.getLatestBlockTimestamp();
+
+            await helpers.setNextBlockTimestamp(firstDepositTs + 3600);
+
+            const expiryTs = time.futureTimestamp(1 * time.year);
+            await voteLock.connect(user).lock(expiryTs);
+            const lockTs = await helpers.getLatestBlockTimestamp();
+            const expectedMultiplier = multiplierAtTs(expiryTs, lockTs + 10);
+            const expectedBalance1 = amount.mul(expectedMultiplier).div(helpers.tenPow18);
+
+            await helpers.setNextBlockTimestamp(lockTs + 3600);
+
+            await voteLock.connect(user).deposit(amount);
+            const secondDepositTs = await helpers.getLatestBlockTimestamp();
+            const expectedMultiplier2 = multiplierAtTs(expiryTs, secondDepositTs + 10);
+            const expectedBalance2 = amount.mul(2).mul(expectedMultiplier2).div(helpers.tenPow18);
+
+            expect(await voteLock.votingPowerAtTs(userAddress, firstDepositTs - 10)).to.be.equal(0);
+            expect(await voteLock.votingPowerAtTs(userAddress, firstDepositTs + 10)).to.be.equal(amount);
+            expect(await voteLock.votingPowerAtTs(userAddress, lockTs + 10)).to.be.equal(expectedBalance1);
+            expect(await voteLock.votingPowerAtTs(userAddress, secondDepositTs + 10)).to.be.equal(expectedBalance2);
+        });
+
+        it('returns voting power with decaying bonus', async function () {
+            await prepareAccount(user, amount.mul(2));
+            await voteLock.connect(user).deposit(amount);
+            const ts = await helpers.getLatestBlockTimestamp();
+            const startTs = ts + 10;
+
+            await setNextBlockTimestamp(startTs);
+            const expiryTs = startTs + time.year;
+            await voteLock.connect(user).lock(expiryTs);
+
+            let bonus = helpers.tenPow18;
+            const dec = helpers.tenPow18.div(10);
+
+            for (let i = 0; i <= 365; i += 36.5) {
+                const ts = startTs + i * time.day;
+                const multiplier = helpers.tenPow18.add(bonus);
+                const expectedVP = amount.mul(multiplier).div(helpers.tenPow18);
+
+                expect(await voteLock.votingPowerAtTs(userAddress, ts)).to.be.equal(expectedVP);
+
+                bonus = bonus.sub(dec);
+            }
         });
     });
 
@@ -229,5 +436,12 @@ describe('VoteLock', function () {
     async function prepareAccount (account: Signer, balance: BigNumber) {
         await bond.mint(await account.getAddress(), balance);
         await bond.connect(account).approve(voteLock.address, balance);
+    }
+
+    function multiplierAtTs (expiryTs: number, ts: number): BigNumber {
+        return BigNumber.from(expiryTs - ts)
+            .mul(helpers.tenPow18)
+            .div(time.year)
+            .add(helpers.tenPow18);
     }
 });

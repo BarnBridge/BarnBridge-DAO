@@ -17,7 +17,8 @@ contract VoteLock is IVoteLock {
     uint256 constant VESTING_START = 1603065600;
     uint256 constant VESTING_EPOCH_DURATION = 604800;
     uint256 constant TOTAL_BOND = 10_000_000e18;
-    uint256 constant MAX_LOCK = 365 days;
+
+    uint256 constant public MAX_LOCK = 365 days;
 
     uint256 constant BASE_MULTIPLIER = 1e18;
 
@@ -27,13 +28,20 @@ contract VoteLock is IVoteLock {
         uint256 expiryTimestamp;
     }
 
+    mapping(address => Stake[]) balances;
+
+    struct Checkpoint {
+        uint256 timestamp;
+        uint256 amount;
+    }
+
+    Checkpoint[] bondStakedHistory;
+
     IERC20 bond;
 
     address communityVault;
     address treasury;
     uint256 otherBondLocked;
-
-    mapping(address => Stake[]) balances;
 
     constructor(address _bond, address _cv, address _treasury) {
         bond = IERC20(_bond);
@@ -49,22 +57,8 @@ contract VoteLock is IVoteLock {
         uint256 allowance = bond.allowance(msg.sender, address(this));
         require(allowance >= amount, "Token allowance too small");
 
-        Stake[] storage checkpoints = balances[msg.sender];
-        uint256 numCheckpoints = checkpoints.length;
-
-        if (numCheckpoints == 0) {
-            // there's no checkpoint for the user
-            checkpoints.push(Stake(block.timestamp, amount, block.timestamp));
-        } else {
-            // the user already has a stake checkpoint; use that as base for the new checkpoint
-            Stake storage oldStake = balances[msg.sender][numCheckpoints - 1];
-
-            if (oldStake.timestamp == block.timestamp) {
-                oldStake.amount = oldStake.amount.add(amount);
-            } else {
-                checkpoints.push(Stake(block.timestamp, oldStake.amount.add(amount), oldStake.expiryTimestamp));
-            }
-        }
+        _updateBalance(balances[msg.sender], balanceOf(msg.sender).add(amount));
+        _updateLockedBond(bondStakedAtTs(block.timestamp).add(amount));
 
         bond.transferFrom(msg.sender, address(this), amount);
     }
@@ -72,36 +66,26 @@ contract VoteLock is IVoteLock {
     // withdraw allows a user to withdraw funds if the balance is not locked
     function withdraw(uint256 amount) override public {
         require(amount > 0, "Amount must be greater than 0");
+        require(userLock(msg.sender) <= block.timestamp, "User balance is locked");
 
         uint256 balance = balanceOf(msg.sender);
         require(balance >= amount, "Insufficient balance");
 
-        // todo: don't let the user withdraw if balance is locked
-
-        Stake[] storage checkpoints = balances[msg.sender];
-        uint256 numCheckpoints = checkpoints.length;
-
-        Stake storage oldStake = balances[msg.sender][numCheckpoints - 1];
-        uint256 newBalance = oldStake.amount.sub(amount);
-
-        // if the user already has a checkpoint for the current block, update that one;
-        // otherwise create a new checkpoint
-        if (oldStake.timestamp == block.timestamp) {
-            oldStake.amount = newBalance;
-        } else {
-            checkpoints.push(Stake(block.timestamp, newBalance, oldStake.expiryTimestamp));
-        }
+        _updateBalance(balances[msg.sender], balance.sub(amount));
+        _updateLockedBond(bondStakedAtTs(block.timestamp).sub(amount));
 
         bond.transfer(msg.sender, amount);
     }
 
     // lock a user's currently staked balance until timestamp & add the bonus to his voting power
     function lock(uint256 timestamp) override public {
-        require(timestamp <= block.timestamp + MAX_LOCK, "timestamp too big");
-        require(balanceOf(msg.sender) > 0, "sender has no balance");
+        require(timestamp <= block.timestamp + MAX_LOCK, "Timestamp too big");
+        require(balanceOf(msg.sender) > 0, "Sender has no balance");
 
         Stake[] storage checkpoints = balances[msg.sender];
-        Stake storage currentStake = checkpoints[checkpoints.length-1];
+        Stake storage currentStake = checkpoints[checkpoints.length - 1];
+
+        require(timestamp > currentStake.expiryTimestamp, "New timestamp lower than current lock timestamp");
 
         checkpoints.push(Stake(block.timestamp, currentStake.amount, timestamp));
     }
@@ -121,6 +105,11 @@ contract VoteLock is IVoteLock {
 
     }
 
+    // balanceOf returns the current BOND balance of a user (bonus not included)
+    function balanceOf(address user) public view returns (uint256) {
+        return balanceAtTs(user, block.timestamp);
+    }
+
     // balanceAtTs returns the amount of BOND that the user currently staked (bonus NOT included)
     function balanceAtTs(address user, uint256 timestamp) override public view returns (uint256) {
         Stake memory stake = stakeAtTs(user, timestamp);
@@ -128,6 +117,7 @@ contract VoteLock is IVoteLock {
         return stake.amount;
     }
 
+    // stakeAtTs returns the Checkpoint object of the user that was valid at `timestamp`
     function stakeAtTs(address user, uint256 timestamp) public view returns (Stake memory) {
         Stake[] storage checkpoints = balances[user];
 
@@ -155,14 +145,23 @@ contract VoteLock is IVoteLock {
         return checkpoints[min];
     }
 
+    // votingPower returns the voting power (bonus included) + delegated voting power for a user at the current block
+    function votingPower(address user) public view returns (uint256) {
+        return votingPowerAtTs(user, block.timestamp);
+    }
+
     // votingPowerAtTs returns the voting power (bonus included) + delegated voting power for a user at a point in time
     function votingPowerAtTs(address user, uint256 timestamp) override public view returns (uint256) {
-        return balanceAtTs(user, timestamp);
+        uint256 balance = balanceAtTs(user, timestamp);
+        uint256 multiplier = multiplierAtTs(user, timestamp);
+
+        return balance.mul(multiplier).div(BASE_MULTIPLIER);
     }
 
     // totalVotingPowerAtTs returns the total voting power at a point in time (equivalent to totalSupply)
     function totalVotingPowerAtTs(uint256 timestamp) override public view returns (uint256) {
         return 0;
+        // todo
     }
 
     // bondCirculatingSupply returns the current circulating supply of BOND
@@ -179,21 +178,82 @@ contract VoteLock is IVoteLock {
         return TOTAL_BOND.sub(totalVested).sub(lockedCommunityVault).sub(lockedTreasury).sub(otherBondLocked);
     }
 
-    function balanceOf(address user) public view returns (uint256) {
-        return balanceAtTs(user, block.timestamp);
+    // bondStaked returns the total raw amount of BOND staked at the current block
+    function bondStaked() public view returns (uint256) {
+        return bondStakedAtTs(block.timestamp);
     }
 
+    // bondStakedAtTs returns the total raw amount of BOND users have deposited into the contract
+    // it does not include any bonus
+    function bondStakedAtTs(uint256 timestamp) public view returns (uint256) {
+        if (bondStakedHistory.length == 0 || timestamp < bondStakedHistory[0].timestamp) {
+            return 0;
+        }
+
+        uint256 min = 0;
+        uint256 max = bondStakedHistory.length - 1;
+
+        if (timestamp >= bondStakedHistory[max].timestamp) {
+            return bondStakedHistory[max].amount;
+        }
+
+        // binary search of the value in the array
+        while (max > min) {
+            uint256 mid = (max + min + 1) / 2;
+            if (bondStakedHistory[mid].timestamp <= timestamp) {
+                min = mid;
+            } else {
+                max = mid - 1;
+            }
+        }
+
+        return bondStakedHistory[min].amount;
+    }
+
+    // multiplierAtTs calculates the multiplier at a given timestamp based on the user's stake a the given timestamp
+    // it includes the decay mechanism
     function multiplierAtTs(address user, uint256 timestamp) public view returns (uint256) {
         Stake memory stake = stakeAtTs(user, timestamp);
 
-        uint256 timeLeft;
-
-        if (block.timestamp >= stake.expiryTimestamp) {
+        if (timestamp >= stake.expiryTimestamp) {
             return BASE_MULTIPLIER;
-        } else {
-            timeLeft = stake.expiryTimestamp - block.timestamp;
         }
 
-        return timeLeft * BASE_MULTIPLIER / MAX_LOCK + BASE_MULTIPLIER;
+        return BASE_MULTIPLIER.add(
+            (stake.expiryTimestamp - timestamp).mul(BASE_MULTIPLIER).div(MAX_LOCK)
+        );
+    }
+
+    // userLock returns the timestamp until the user's balance is locked
+    function userLock(address user) public view returns (uint256) {
+        Stake memory c = stakeAtTs(user, block.timestamp);
+
+        return c.expiryTimestamp;
+    }
+
+    // _updateBalance manages an array of checkpoints
+    // if there's already a checkpoint for the same timestamp, the amount is updated
+    // otherwise, a new checkpoint is inserted
+    function _updateBalance(Stake[] storage checkpoints, uint256 amount) internal {
+        if (checkpoints.length == 0) {
+            checkpoints.push(Stake(block.timestamp, amount, block.timestamp));
+        } else {
+            Stake storage old = checkpoints[checkpoints.length - 1];
+
+            if (old.timestamp == block.timestamp) {
+                old.amount = amount;
+            } else {
+                checkpoints.push(Stake(block.timestamp, amount, old.expiryTimestamp));
+            }
+        }
+    }
+
+    function _updateLockedBond(uint256 amount) internal {
+        if (bondStakedHistory.length == 0 || bondStakedHistory[bondStakedHistory.length - 1].timestamp < block.timestamp) {
+            bondStakedHistory.push(Checkpoint(block.timestamp, amount));
+        } else {
+            Checkpoint storage old = bondStakedHistory[bondStakedHistory.length - 1];
+            old.amount = amount;
+        }
     }
 }

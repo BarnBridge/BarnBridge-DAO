@@ -22,9 +22,12 @@ import { FunctionFragment, EventFragment, Result } from "@ethersproject/abi";
 
 interface VoteLockInterface extends ethers.utils.Interface {
   functions: {
+    "MAX_LOCK()": FunctionFragment;
     "balanceAtTs(address,uint256)": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
     "bondCirculatingSupply()": FunctionFragment;
+    "bondStaked()": FunctionFragment;
+    "bondStakedAtTs(uint256)": FunctionFragment;
     "delegate(address)": FunctionFragment;
     "deposit(uint256)": FunctionFragment;
     "lock(uint256)": FunctionFragment;
@@ -33,10 +36,13 @@ interface VoteLockInterface extends ethers.utils.Interface {
     "stakeAtTs(address,uint256)": FunctionFragment;
     "stopDelegate()": FunctionFragment;
     "totalVotingPowerAtTs(uint256)": FunctionFragment;
+    "userLock(address)": FunctionFragment;
+    "votingPower(address)": FunctionFragment;
     "votingPowerAtTs(address,uint256)": FunctionFragment;
     "withdraw(uint256)": FunctionFragment;
   };
 
+  encodeFunctionData(functionFragment: "MAX_LOCK", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "balanceAtTs",
     values: [string, BigNumberish]
@@ -45,6 +51,14 @@ interface VoteLockInterface extends ethers.utils.Interface {
   encodeFunctionData(
     functionFragment: "bondCirculatingSupply",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "bondStaked",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "bondStakedAtTs",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "delegate", values: [string]): string;
   encodeFunctionData(
@@ -72,6 +86,8 @@ interface VoteLockInterface extends ethers.utils.Interface {
     functionFragment: "totalVotingPowerAtTs",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(functionFragment: "userLock", values: [string]): string;
+  encodeFunctionData(functionFragment: "votingPower", values: [string]): string;
   encodeFunctionData(
     functionFragment: "votingPowerAtTs",
     values: [string, BigNumberish]
@@ -81,6 +97,7 @@ interface VoteLockInterface extends ethers.utils.Interface {
     values: [BigNumberish]
   ): string;
 
+  decodeFunctionResult(functionFragment: "MAX_LOCK", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "balanceAtTs",
     data: BytesLike
@@ -88,6 +105,11 @@ interface VoteLockInterface extends ethers.utils.Interface {
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "bondCirculatingSupply",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "bondStaked", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "bondStakedAtTs",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "delegate", data: BytesLike): Result;
@@ -108,6 +130,11 @@ interface VoteLockInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "totalVotingPowerAtTs",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "userLock", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "votingPower",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -133,6 +160,18 @@ export class VoteLock extends Contract {
   interface: VoteLockInterface;
 
   functions: {
+    MAX_LOCK(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "MAX_LOCK()"(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
     balanceAtTs(
       user: string,
       timestamp: BigNumberish,
@@ -170,6 +209,32 @@ export class VoteLock extends Contract {
     }>;
 
     "bondCirculatingSupply()"(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    bondStaked(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "bondStaked()"(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    bondStakedAtTs(
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "bondStakedAtTs(uint256)"(
+      timestamp: BigNumberish,
       overrides?: CallOverrides
     ): Promise<{
       0: BigNumber;
@@ -278,6 +343,34 @@ export class VoteLock extends Contract {
       0: BigNumber;
     }>;
 
+    userLock(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "userLock(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    votingPower(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "votingPower(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
     votingPowerAtTs(
       user: string,
       timestamp: BigNumberish,
@@ -305,6 +398,10 @@ export class VoteLock extends Contract {
     ): Promise<ContractTransaction>;
   };
 
+  MAX_LOCK(overrides?: CallOverrides): Promise<BigNumber>;
+
+  "MAX_LOCK()"(overrides?: CallOverrides): Promise<BigNumber>;
+
   balanceAtTs(
     user: string,
     timestamp: BigNumberish,
@@ -327,6 +424,20 @@ export class VoteLock extends Contract {
   bondCirculatingSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
   "bondCirculatingSupply()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+  bondStaked(overrides?: CallOverrides): Promise<BigNumber>;
+
+  "bondStaked()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+  bondStakedAtTs(
+    timestamp: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  "bondStakedAtTs(uint256)"(
+    timestamp: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   delegate(to: string, overrides?: Overrides): Promise<ContractTransaction>;
 
@@ -419,6 +530,20 @@ export class VoteLock extends Contract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
+  userLock(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+  "userLock(address)"(
+    user: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  votingPower(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+  "votingPower(address)"(
+    user: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   votingPowerAtTs(
     user: string,
     timestamp: BigNumberish,
@@ -442,6 +567,10 @@ export class VoteLock extends Contract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
+    MAX_LOCK(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "MAX_LOCK()"(overrides?: CallOverrides): Promise<BigNumber>;
+
     balanceAtTs(
       user: string,
       timestamp: BigNumberish,
@@ -464,6 +593,20 @@ export class VoteLock extends Contract {
     bondCirculatingSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
     "bondCirculatingSupply()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    bondStaked(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "bondStaked()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    bondStakedAtTs(
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "bondStakedAtTs(uint256)"(
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     delegate(to: string, overrides?: CallOverrides): Promise<void>;
 
@@ -547,6 +690,20 @@ export class VoteLock extends Contract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    userLock(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    "userLock(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    votingPower(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    "votingPower(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     votingPowerAtTs(
       user: string,
       timestamp: BigNumberish,
@@ -570,6 +727,10 @@ export class VoteLock extends Contract {
   filters: {};
 
   estimateGas: {
+    MAX_LOCK(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "MAX_LOCK()"(overrides?: CallOverrides): Promise<BigNumber>;
+
     balanceAtTs(
       user: string,
       timestamp: BigNumberish,
@@ -592,6 +753,20 @@ export class VoteLock extends Contract {
     bondCirculatingSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
     "bondCirculatingSupply()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    bondStaked(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "bondStaked()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    bondStakedAtTs(
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "bondStakedAtTs(uint256)"(
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     delegate(to: string, overrides?: Overrides): Promise<BigNumber>;
 
@@ -661,6 +836,20 @@ export class VoteLock extends Contract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    userLock(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    "userLock(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    votingPower(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    "votingPower(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     votingPowerAtTs(
       user: string,
       timestamp: BigNumberish,
@@ -682,6 +871,10 @@ export class VoteLock extends Contract {
   };
 
   populateTransaction: {
+    MAX_LOCK(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    "MAX_LOCK()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     balanceAtTs(
       user: string,
       timestamp: BigNumberish,
@@ -709,6 +902,20 @@ export class VoteLock extends Contract {
     ): Promise<PopulatedTransaction>;
 
     "bondCirculatingSupply()"(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    bondStaked(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    "bondStaked()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    bondStakedAtTs(
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "bondStakedAtTs(uint256)"(
+      timestamp: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -786,6 +993,26 @@ export class VoteLock extends Contract {
 
     "totalVotingPowerAtTs(uint256)"(
       timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    userLock(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "userLock(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    votingPower(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "votingPower(address)"(
+      user: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 

@@ -28,6 +28,10 @@ export async function getLatestBlock (): Promise<any> {
     return await ethers.provider.send('eth_getBlockByNumber', ['latest', false]);
 }
 
+export async function getLatestBlockTimestamp ():Promise<number> {
+    return parseInt((await getLatestBlock()).timestamp);
+}
+
 export async function setNextBlockTimestamp (timestamp: number): Promise<void> {
     const block = await ethers.provider.send('eth_getBlockByNumber', ['latest', false]);
     const currentTs = parseInt(block.timestamp);
