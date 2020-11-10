@@ -29,6 +29,8 @@ interface VoteLockInterface extends ethers.utils.Interface {
     "bondStaked()": FunctionFragment;
     "bondStakedAtTs(uint256)": FunctionFragment;
     "delegate(address)": FunctionFragment;
+    "delegatedPower(address)": FunctionFragment;
+    "delegatedPowerAtTs(address,uint256)": FunctionFragment;
     "deposit(uint256)": FunctionFragment;
     "lock(uint256)": FunctionFragment;
     "lockCreatorBalance(address,uint256)": FunctionFragment;
@@ -36,7 +38,8 @@ interface VoteLockInterface extends ethers.utils.Interface {
     "stakeAtTs(address,uint256)": FunctionFragment;
     "stopDelegate()": FunctionFragment;
     "totalVotingPowerAtTs(uint256)": FunctionFragment;
-    "userLock(address)": FunctionFragment;
+    "userDelegatedTo(address)": FunctionFragment;
+    "userLockedUntil(address)": FunctionFragment;
     "votingPower(address)": FunctionFragment;
     "votingPowerAtTs(address,uint256)": FunctionFragment;
     "withdraw(uint256)": FunctionFragment;
@@ -62,6 +65,14 @@ interface VoteLockInterface extends ethers.utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "delegate", values: [string]): string;
   encodeFunctionData(
+    functionFragment: "delegatedPower",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "delegatedPowerAtTs",
+    values: [string, BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "deposit",
     values: [BigNumberish]
   ): string;
@@ -86,7 +97,14 @@ interface VoteLockInterface extends ethers.utils.Interface {
     functionFragment: "totalVotingPowerAtTs",
     values: [BigNumberish]
   ): string;
-  encodeFunctionData(functionFragment: "userLock", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "userDelegatedTo",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "userLockedUntil",
+    values: [string]
+  ): string;
   encodeFunctionData(functionFragment: "votingPower", values: [string]): string;
   encodeFunctionData(
     functionFragment: "votingPowerAtTs",
@@ -113,6 +131,14 @@ interface VoteLockInterface extends ethers.utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "delegate", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "delegatedPower",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "delegatedPowerAtTs",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
   decodeFunctionResult(
@@ -132,7 +158,14 @@ interface VoteLockInterface extends ethers.utils.Interface {
     functionFragment: "totalVotingPowerAtTs",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "userLock", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "userDelegatedTo",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "userLockedUntil",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "votingPower",
     data: BytesLike
@@ -247,6 +280,36 @@ export class VoteLock extends Contract {
       overrides?: Overrides
     ): Promise<ContractTransaction>;
 
+    delegatedPower(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "delegatedPower(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    delegatedPowerAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "delegatedPowerAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
     deposit(
       amount: BigNumberish,
       overrides?: Overrides
@@ -304,9 +367,11 @@ export class VoteLock extends Contract {
         timestamp: BigNumber;
         amount: BigNumber;
         expiryTimestamp: BigNumber;
+        delegatedTo: string;
         0: BigNumber;
         1: BigNumber;
         2: BigNumber;
+        3: string;
       };
     }>;
 
@@ -319,9 +384,11 @@ export class VoteLock extends Contract {
         timestamp: BigNumber;
         amount: BigNumber;
         expiryTimestamp: BigNumber;
+        delegatedTo: string;
         0: BigNumber;
         1: BigNumber;
         2: BigNumber;
+        3: string;
       };
     }>;
 
@@ -343,14 +410,28 @@ export class VoteLock extends Contract {
       0: BigNumber;
     }>;
 
-    userLock(
+    userDelegatedTo(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: string;
+    }>;
+
+    "userDelegatedTo(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: string;
+    }>;
+
+    userLockedUntil(
       user: string,
       overrides?: CallOverrides
     ): Promise<{
       0: BigNumber;
     }>;
 
-    "userLock(address)"(
+    "userLockedUntil(address)"(
       user: string,
       overrides?: CallOverrides
     ): Promise<{
@@ -446,6 +527,25 @@ export class VoteLock extends Contract {
     overrides?: Overrides
   ): Promise<ContractTransaction>;
 
+  delegatedPower(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+  "delegatedPower(address)"(
+    user: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  delegatedPowerAtTs(
+    user: string,
+    timestamp: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  "delegatedPowerAtTs(address,uint256)"(
+    user: string,
+    timestamp: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   deposit(
     amount: BigNumberish,
     overrides?: Overrides
@@ -498,9 +598,11 @@ export class VoteLock extends Contract {
     timestamp: BigNumber;
     amount: BigNumber;
     expiryTimestamp: BigNumber;
+    delegatedTo: string;
     0: BigNumber;
     1: BigNumber;
     2: BigNumber;
+    3: string;
   }>;
 
   "stakeAtTs(address,uint256)"(
@@ -511,9 +613,11 @@ export class VoteLock extends Contract {
     timestamp: BigNumber;
     amount: BigNumber;
     expiryTimestamp: BigNumber;
+    delegatedTo: string;
     0: BigNumber;
     1: BigNumber;
     2: BigNumber;
+    3: string;
   }>;
 
   stopDelegate(overrides?: Overrides): Promise<ContractTransaction>;
@@ -530,9 +634,16 @@ export class VoteLock extends Contract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  userLock(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+  userDelegatedTo(user: string, overrides?: CallOverrides): Promise<string>;
 
-  "userLock(address)"(
+  "userDelegatedTo(address)"(
+    user: string,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
+  userLockedUntil(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+  "userLockedUntil(address)"(
     user: string,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
@@ -612,6 +723,25 @@ export class VoteLock extends Contract {
 
     "delegate(address)"(to: string, overrides?: CallOverrides): Promise<void>;
 
+    delegatedPower(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    "delegatedPower(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    delegatedPowerAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "delegatedPowerAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     deposit(amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     "deposit(uint256)"(
@@ -658,9 +788,11 @@ export class VoteLock extends Contract {
       timestamp: BigNumber;
       amount: BigNumber;
       expiryTimestamp: BigNumber;
+      delegatedTo: string;
       0: BigNumber;
       1: BigNumber;
       2: BigNumber;
+      3: string;
     }>;
 
     "stakeAtTs(address,uint256)"(
@@ -671,9 +803,11 @@ export class VoteLock extends Contract {
       timestamp: BigNumber;
       amount: BigNumber;
       expiryTimestamp: BigNumber;
+      delegatedTo: string;
       0: BigNumber;
       1: BigNumber;
       2: BigNumber;
+      3: string;
     }>;
 
     stopDelegate(overrides?: CallOverrides): Promise<void>;
@@ -690,9 +824,19 @@ export class VoteLock extends Contract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    userLock(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+    userDelegatedTo(user: string, overrides?: CallOverrides): Promise<string>;
 
-    "userLock(address)"(
+    "userDelegatedTo(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
+    userLockedUntil(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "userLockedUntil(address)"(
       user: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -772,6 +916,25 @@ export class VoteLock extends Contract {
 
     "delegate(address)"(to: string, overrides?: Overrides): Promise<BigNumber>;
 
+    delegatedPower(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    "delegatedPower(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    delegatedPowerAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "delegatedPowerAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     deposit(amount: BigNumberish, overrides?: Overrides): Promise<BigNumber>;
 
     "deposit(uint256)"(
@@ -836,9 +999,22 @@ export class VoteLock extends Contract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    userLock(user: string, overrides?: CallOverrides): Promise<BigNumber>;
+    userDelegatedTo(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
-    "userLock(address)"(
+    "userDelegatedTo(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    userLockedUntil(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "userLockedUntil(address)"(
       user: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -926,6 +1102,28 @@ export class VoteLock extends Contract {
       overrides?: Overrides
     ): Promise<PopulatedTransaction>;
 
+    delegatedPower(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "delegatedPower(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    delegatedPowerAtTs(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "delegatedPowerAtTs(address,uint256)"(
+      user: string,
+      timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     deposit(
       amount: BigNumberish,
       overrides?: Overrides
@@ -996,12 +1194,22 @@ export class VoteLock extends Contract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    userLock(
+    userDelegatedTo(
       user: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    "userLock(address)"(
+    "userDelegatedTo(address)"(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    userLockedUntil(
+      user: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "userLockedUntil(address)"(
       user: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;

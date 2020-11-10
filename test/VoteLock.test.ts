@@ -12,8 +12,12 @@ describe('VoteLock', function () {
     const amount = BigNumber.from(100).mul(BigNumber.from(10).pow(18));
 
     let voteLock: VoteLock, bond: Erc20Mock;
+
     let user: Signer, userAddress: string;
+    let happyPirate: Signer, happyPirateAddress: string;
+    let flyingParrot: Signer, flyingParrotAddress: string;
     let communityVault: Signer, treasury: Signer;
+
     let snapshotId: any;
 
     beforeEach(async function () {
@@ -68,6 +72,18 @@ describe('VoteLock', function () {
             await voteLock.connect(user).deposit(amount);
 
             expect(await voteLock.bondStaked()).to.be.equal(amount);
+        });
+
+        it('updates the delegated user\'s voting power if user delegated his balance', async function () {
+            await prepareAccount(user, amount.mul(2));
+            await voteLock.connect(user).deposit(amount);
+            await voteLock.connect(user).delegate(happyPirateAddress);
+
+            expect(await voteLock.delegatedPower(happyPirateAddress)).to.be.equal(amount);
+
+            await voteLock.connect(user).deposit(amount);
+
+            expect(await voteLock.delegatedPower(happyPirateAddress)).to.be.equal(amount.mul(2));
         });
     });
 
@@ -207,6 +223,18 @@ describe('VoteLock', function () {
             await voteLock.connect(user).withdraw(amount);
             expect(await voteLock.bondStaked()).to.be.equal(0);
         });
+
+        it('updates the delegated user\'s voting power if user delegated his balance', async function () {
+            await prepareAccount(user, amount.mul(2));
+            await voteLock.connect(user).deposit(amount);
+            await voteLock.connect(user).delegate(happyPirateAddress);
+
+            expect(await voteLock.delegatedPower(happyPirateAddress)).to.be.equal(amount);
+
+            await voteLock.connect(user).withdraw(amount);
+
+            expect(await voteLock.delegatedPower(happyPirateAddress)).to.be.equal(0);
+        });
     });
 
     describe('bondCirculatingSupply', async function () {
@@ -259,7 +287,7 @@ describe('VoteLock', function () {
             const expiryTs = time.futureTimestamp(1 * time.year);
             await voteLock.connect(user).lock(expiryTs);
 
-            expect(await voteLock.userLock(userAddress)).to.be.equal(expiryTs);
+            expect(await voteLock.userLockedUntil(userAddress)).to.be.equal(expiryTs);
         });
 
         it('allows user to increase lock', async function () {
@@ -270,7 +298,7 @@ describe('VoteLock', function () {
 
             const expiryTs = time.futureTimestamp(1 * time.year);
             await expect(voteLock.connect(user).lock(expiryTs)).to.not.be.reverted;
-            expect(await voteLock.userLock(userAddress)).to.be.equal(expiryTs);
+            expect(await voteLock.userLockedUntil(userAddress)).to.be.equal(expiryTs);
         });
 
         it('does not block deposits for user', async function () {
@@ -417,12 +445,149 @@ describe('VoteLock', function () {
         });
     });
 
+    describe('delegate', async function () {
+        it('reverts if user delegates to self', async function () {
+            await expect(voteLock.connect(user).delegate(userAddress)).to.be.revertedWith("Can't delegate to self");
+        });
+
+        it('reverts if user does not have balance', async function () {
+            await prepareAccount(user, amount);
+
+            await expect(voteLock.connect(user).delegate(happyPirateAddress))
+                .to.be.revertedWith('No balance to delegate');
+
+            await voteLock.connect(user).deposit(amount);
+
+            await expect(voteLock.connect(user).delegate(happyPirateAddress)).to.not.be.reverted;
+        });
+
+        it('sets the correct voting powers for delegate and delegatee', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+
+            await voteLock.connect(user).delegate(happyPirateAddress);
+
+            expect(await voteLock.votingPower(happyPirateAddress)).to.be.equal(amount);
+            expect(await voteLock.votingPower(userAddress)).to.be.equal(0);
+        });
+
+        it('sets the correct voting power if delegatee has own balance', async function () {
+            await prepareAccount(user, amount);
+            await prepareAccount(happyPirate, amount);
+            await voteLock.connect(user).deposit(amount);
+            await voteLock.connect(happyPirate).deposit(amount);
+
+            await voteLock.connect(user).delegate(happyPirateAddress);
+
+            expect(await voteLock.votingPower(happyPirateAddress)).to.be.equal(amount.mul(2));
+            expect(await voteLock.votingPower(userAddress)).to.be.equal(0);
+        });
+
+        it('sets the correct voting power if delegatee receives from multiple users', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+            await voteLock.connect(user).delegate(flyingParrotAddress);
+
+            await prepareAccount(happyPirate, amount);
+            await voteLock.connect(happyPirate).deposit(amount);
+            await voteLock.connect(happyPirate).delegate(flyingParrotAddress);
+
+            expect(await voteLock.votingPower(flyingParrotAddress)).to.be.equal(amount.mul(2));
+
+            await prepareAccount(flyingParrot, amount);
+            await voteLock.connect(flyingParrot).deposit(amount);
+
+            expect(await voteLock.votingPower(flyingParrotAddress)).to.be.equal(amount.mul(3));
+        });
+
+        it('records history of delegated power', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+
+            await prepareAccount(happyPirate, amount);
+            await voteLock.connect(happyPirate).deposit(amount);
+
+            await voteLock.connect(user).delegate(flyingParrotAddress);
+            const delegate1Ts = await helpers.getLatestBlockTimestamp();
+
+            await voteLock.connect(happyPirate).delegate(flyingParrotAddress);
+            const delegate2Ts = await helpers.getLatestBlockTimestamp();
+
+            await prepareAccount(flyingParrot, amount);
+            await voteLock.connect(flyingParrot).deposit(amount);
+            const depositTs = await helpers.getLatestBlockTimestamp();
+
+            expect(await voteLock.votingPowerAtTs(flyingParrotAddress, depositTs - 1)).to.be.equal(amount.mul(2));
+            expect(await voteLock.votingPowerAtTs(flyingParrotAddress, delegate2Ts - 1)).to.be.equal(amount);
+            expect(await voteLock.votingPowerAtTs(flyingParrotAddress, delegate1Ts - 1)).to.be.equal(0);
+        });
+
+        it('does not modify user balance', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+            await voteLock.connect(user).delegate(happyPirateAddress);
+
+            expect(await voteLock.balanceOf(userAddress)).to.be.equal(amount);
+        });
+    });
+
+    describe('stopDelegate', async function () {
+        it('removes delegated voting power from delegatee and returns it to user', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+            await voteLock.connect(user).delegate(happyPirateAddress);
+
+            expect(await voteLock.votingPower(userAddress)).to.be.equal(0);
+            expect(await voteLock.votingPower(happyPirateAddress)).to.be.equal(amount);
+
+            await voteLock.connect(user).stopDelegate();
+
+            expect(await voteLock.votingPower(userAddress)).to.be.equal(amount);
+            expect(await voteLock.votingPower(happyPirateAddress)).to.be.equal(0);
+        });
+
+        it('preserves delegate history', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+            await voteLock.connect(user).delegate(happyPirateAddress);
+            const delegateTs = await helpers.getLatestBlockTimestamp();
+
+            await voteLock.connect(user).stopDelegate();
+            const stopTs = await helpers.getLatestBlockTimestamp();
+
+            expect(await voteLock.votingPowerAtTs(happyPirateAddress, delegateTs-1)).to.be.equal(0);
+            expect(await voteLock.votingPowerAtTs(happyPirateAddress, stopTs-1)).to.be.equal(amount);
+            expect(await voteLock.votingPowerAtTs(happyPirateAddress, stopTs+1)).to.be.equal(0);
+        });
+
+        it('does not change any other delegated balances for the delegatee', async function () {
+            await prepareAccount(user, amount);
+            await voteLock.connect(user).deposit(amount);
+            await voteLock.connect(user).delegate(flyingParrotAddress);
+
+            await prepareAccount(happyPirate, amount);
+            await voteLock.connect(happyPirate).deposit(amount);
+            await voteLock.connect(happyPirate).delegate(flyingParrotAddress);
+
+            expect(await voteLock.votingPower(flyingParrotAddress)).to.be.equal(amount.mul(2));
+
+            await voteLock.connect(user).stopDelegate();
+
+            expect(await voteLock.votingPower(flyingParrotAddress)).to.be.equal(amount);
+        });
+    });
+
     async function setupSigners () {
         const accounts = await ethers.getSigners();
         user = accounts[0];
         communityVault = accounts[1];
         treasury = accounts[2];
+        happyPirate = accounts[3];
+        flyingParrot = accounts[4];
+
         userAddress = await user.getAddress();
+        happyPirateAddress = await happyPirate.getAddress();
+        flyingParrotAddress = await flyingParrot.getAddress();
     }
 
     async function setupContracts () {
