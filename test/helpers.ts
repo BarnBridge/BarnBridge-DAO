@@ -7,6 +7,7 @@ import { Erc20Mock, VoteLock, Timelock, VoteProposal } from '../typechain';
 export const stakingEpochStart = 1603065600;
 export const stakingEpochDuration = 604800;
 export const tenPow18 = BigNumber.from(10).pow(18);
+export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export async function deployVoteLock (bond:string, cv:string, treasury:string): Promise<VoteLock> {
     const VoteLock: ContractFactory = await ethers.getContractFactory('VoteLock');
@@ -64,8 +65,4 @@ export async function getCurrentEpoch (): Promise<number> {
     }
 
     return Math.floor((currentBlockTs - stakingEpochStart) / stakingEpochDuration) + 1;
-}
-
-export function zeroAddress (): string {
-    return '0x0000000000000000000000000000000000000000';
 }

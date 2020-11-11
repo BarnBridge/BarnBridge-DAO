@@ -12,9 +12,11 @@ describe('VoteProposal', function () {
     let voteProposal: VoteProposal, timelock: Timelock, lock: VoteLock, bond: Erc20Mock;
     let user: Signer, userAddress: string;
     let communityVault: Signer, treasury: Signer;
+    let voter1: Signer, voter2: Signer, voter3: Signer;
     let snapshotId: any;
     enum ProposalState {
         WarmUp,
+        ReadyForActivation,
         Active,
         Canceled,
         Failed,
@@ -49,16 +51,15 @@ describe('VoteProposal', function () {
 
     describe('propose', function () {
         it('create new proposal revert reasons', async function () {
-            const targets = [helpers.zeroAddress()];
-            const targets10plus = [helpers.zeroAddress()];
-            const targetsMismatch = [helpers.zeroAddress(), helpers.zeroAddress()];
+            const targets = [helpers.ZERO_ADDRESS];
+            const targetsMismatch = [helpers.ZERO_ADDRESS, helpers.ZERO_ADDRESS];
             const values = ['0'];
             const valuesMismatch = ['0', '0'];
             const signatures = ['getBalanceOf(address)'];
             const signaturesMismatch = ['getBalanceOf(address)', 'getBalanceOf(address)'];
-            const callDatas = [ejs.utils.defaultAbiCoder.encode(['address'], [helpers.zeroAddress()])];
-            const callDatasMismatch = [ejs.utils.defaultAbiCoder.encode(['address'], [helpers.zeroAddress()]),
-                ejs.utils.defaultAbiCoder.encode(['address'], [helpers.zeroAddress()])];
+            const callDatas = [ejs.utils.defaultAbiCoder.encode(['address'], [helpers.ZERO_ADDRESS])];
+            const callDatasMismatch = [ejs.utils.defaultAbiCoder.encode(['address'], [helpers.ZERO_ADDRESS]),
+                ejs.utils.defaultAbiCoder.encode(['address'], [helpers.ZERO_ADDRESS])];
             await expect(voteProposal.connect(user)
                 .propose(targets, values, signatures, callDatas, 'description', 'title'))
                 .to.be.revertedWith('User must own at least 1%');
@@ -87,10 +88,10 @@ describe('VoteProposal', function () {
             // expect(await voteProposal.lastProposalId()).to.be.equal(1);
         });
         it('create new proposal', async function () {
-            const targets = [helpers.zeroAddress()];
+            const targets = [helpers.ZERO_ADDRESS];
             const values = ['0'];
             const signatures = ['getBalanceOf(address)'];
-            const callDatas = [ejs.utils.defaultAbiCoder.encode(['address'], [helpers.zeroAddress()])];
+            const callDatas = [ejs.utils.defaultAbiCoder.encode(['address'], [helpers.ZERO_ADDRESS])];
             await setupContracts();
             await prepareAccount(user, amount);
             await lock.connect(user).deposit(amount);
@@ -103,6 +104,28 @@ describe('VoteProposal', function () {
                 .propose(targets, values, signatures, callDatas, 'description', 'title'))
                 .to.be.revertedWith('One live proposal per proposer, found an already warmup proposal');
         });
+
+        it('cast vote', async function () {
+            const targets = [helpers.ZERO_ADDRESS];
+            const values = ['0'];
+            const signatures = ['getBalanceOf(address)'];
+            const callDatas = [ejs.utils.defaultAbiCoder.encode(['address'], [helpers.ZERO_ADDRESS])];
+            await setupContracts();
+            await prepareAccount(user, amount);
+            await prepareVoters([voter1, voter2, voter3], [amount, amount, amount]);
+            await lock.connect(user).deposit(amount);
+            await voteProposal.connect(user)
+                .propose(targets, values, signatures, callDatas, 'description', 'title');
+            expect(await voteProposal.lastProposalId()).to.be.equal(1);
+            expect(await voteProposal.latestProposalIds(userAddress)).to.be.equal(1);
+            expect(await voteProposal.state(1)).to.be.equal(ProposalState.WarmUp);
+            const WARM_UP_PERIOD = (await voteProposal.WARM_UP()).toNumber();
+            const block = await helpers.getLatestBlock();
+            const ts = parseInt(block.timestamp);
+            await helpers.moveAtTimestamp(ts + WARM_UP_PERIOD);
+            expect(await voteProposal.state(1)).to.be.equal(ProposalState.ReadyForActivation);
+
+        });
     });
 
     async function setupSigners () {
@@ -110,7 +133,15 @@ describe('VoteProposal', function () {
         user = accounts[0];
         communityVault = accounts[1];
         treasury = accounts[2];
+        voter1 = accounts[10];
+        voter2 = accounts[11];
+        voter3 = accounts[12];
         userAddress = await user.getAddress();
+    }
+    async function prepareVoters (voters: Array<Signer>, amounts: Array<BigNumber>) {
+        for(let i=0; i<voters.length; i++) {
+            await prepareAccount(voters[i], amount);
+        }
     }
 
     async function setupContracts () {
@@ -126,7 +157,7 @@ describe('VoteProposal', function () {
         await bond.connect(account).approve(lock.address, balance);
     }
 
-    function fillArray (arr: Array<any>, len: number) {
+    function fillArray (arr: Array<string>, len: number) {
         while (arr.length * 2 <= len) arr = arr.concat(arr);
         if (arr.length < len) arr = arr.concat(arr.slice(0, len - arr.length));
         return arr;

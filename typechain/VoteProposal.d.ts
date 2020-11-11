@@ -23,6 +23,11 @@ import { FunctionFragment, EventFragment, Result } from "@ethersproject/abi";
 
 interface VoteProposalInterface extends ethers.utils.Interface {
   functions: {
+    "ACTIVE()": FunctionFragment;
+    "GRACE_PERIOD()": FunctionFragment;
+    "MINIMUM_FOR_VOTES_THRESHOLD()": FunctionFragment;
+    "QUEUE()": FunctionFragment;
+    "WARM_UP()": FunctionFragment;
     "cancel(uint256)": FunctionFragment;
     "cancelVote(uint256)": FunctionFragment;
     "castVote(uint256,bool)": FunctionFragment;
@@ -36,6 +41,17 @@ interface VoteProposalInterface extends ethers.utils.Interface {
     "state(uint256)": FunctionFragment;
   };
 
+  encodeFunctionData(functionFragment: "ACTIVE", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "GRACE_PERIOD",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "MINIMUM_FOR_VOTES_THRESHOLD",
+    values?: undefined
+  ): string;
+  encodeFunctionData(functionFragment: "QUEUE", values?: undefined): string;
+  encodeFunctionData(functionFragment: "WARM_UP", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "cancel",
     values: [BigNumberish]
@@ -75,6 +91,17 @@ interface VoteProposalInterface extends ethers.utils.Interface {
   encodeFunctionData(functionFragment: "queue", values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: "state", values: [BigNumberish]): string;
 
+  decodeFunctionResult(functionFragment: "ACTIVE", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "GRACE_PERIOD",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "MINIMUM_FOR_VOTES_THRESHOLD",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "QUEUE", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "WARM_UP", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "cancel", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "cancelVote", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "castVote", data: BytesLike): Result;
@@ -113,6 +140,66 @@ export class VoteProposal extends Contract {
   interface: VoteProposalInterface;
 
   functions: {
+    ACTIVE(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "ACTIVE()"(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    GRACE_PERIOD(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "GRACE_PERIOD()"(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    MINIMUM_FOR_VOTES_THRESHOLD(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "MINIMUM_FOR_VOTES_THRESHOLD()"(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    QUEUE(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "QUEUE()"(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    WARM_UP(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "WARM_UP()"(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
     cancel(
       proposalId: BigNumberish,
       overrides?: Overrides
@@ -298,6 +385,28 @@ export class VoteProposal extends Contract {
     }>;
   };
 
+  ACTIVE(overrides?: CallOverrides): Promise<BigNumber>;
+
+  "ACTIVE()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+  GRACE_PERIOD(overrides?: CallOverrides): Promise<BigNumber>;
+
+  "GRACE_PERIOD()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+  MINIMUM_FOR_VOTES_THRESHOLD(overrides?: CallOverrides): Promise<BigNumber>;
+
+  "MINIMUM_FOR_VOTES_THRESHOLD()"(
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  QUEUE(overrides?: CallOverrides): Promise<BigNumber>;
+
+  "QUEUE()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+  WARM_UP(overrides?: CallOverrides): Promise<BigNumber>;
+
+  "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
+
   cancel(
     proposalId: BigNumberish,
     overrides?: Overrides
@@ -456,6 +565,28 @@ export class VoteProposal extends Contract {
   ): Promise<number>;
 
   callStatic: {
+    ACTIVE(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "ACTIVE()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    GRACE_PERIOD(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "GRACE_PERIOD()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    MINIMUM_FOR_VOTES_THRESHOLD(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "MINIMUM_FOR_VOTES_THRESHOLD()"(
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    QUEUE(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "QUEUE()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    WARM_UP(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
+
     cancel(proposalId: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     "cancel(uint256)"(
@@ -608,6 +739,28 @@ export class VoteProposal extends Contract {
   filters: {};
 
   estimateGas: {
+    ACTIVE(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "ACTIVE()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    GRACE_PERIOD(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "GRACE_PERIOD()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    MINIMUM_FOR_VOTES_THRESHOLD(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "MINIMUM_FOR_VOTES_THRESHOLD()"(
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    QUEUE(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "QUEUE()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    WARM_UP(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
+
     cancel(proposalId: BigNumberish, overrides?: Overrides): Promise<BigNumber>;
 
     "cancel(uint256)"(
@@ -714,6 +867,30 @@ export class VoteProposal extends Contract {
   };
 
   populateTransaction: {
+    ACTIVE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    "ACTIVE()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    GRACE_PERIOD(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    "GRACE_PERIOD()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    MINIMUM_FOR_VOTES_THRESHOLD(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "MINIMUM_FOR_VOTES_THRESHOLD()"(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    QUEUE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    "QUEUE()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    WARM_UP(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    "WARM_UP()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     cancel(
       proposalId: BigNumberish,
       overrides?: Overrides

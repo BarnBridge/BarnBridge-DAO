@@ -7,14 +7,17 @@ import "./interfaces/ITimeLock.sol";
 
 contract VoteProposal {
 
-    uint constant WARM_UP = 2 days;
-    uint constant ACTIVE = 2 days;
-    uint constant QUEUE = 2 days;
-    uint constant GRACE_PERIOD = 2 days;
+    uint public constant WARM_UP = 2 days;
+    uint public constant ACTIVE = 2 days;
+    uint public constant QUEUE = 2 days;
+    uint public constant GRACE_PERIOD = 2 days;
+
+    uint public MINIMUM_FOR_VOTES_THRESHOLD = 60;
 
 
     enum ProposalState {
         WarmUp,
+        ReadyForActivation,
         Active,
         Canceled,
         Failed,
@@ -100,6 +103,7 @@ contract VoteProposal {
 
     function proposalMaxOperations() public pure returns (uint) { return 10; } // 10 actions
 
+
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description, string memory title) public returns (uint) {
 
         // requires for the user
@@ -131,12 +135,13 @@ contract VoteProposal {
         newProposal.signatures = signatures;
         newProposal.calldatas = calldatas;
         newProposal.createTime = block.timestamp - 1;
+//        newProposal.startTime = block.timestamp - 1 + WARM_UP;
 
         lastProposalId = newProposalId;
         latestProposalIds[msg.sender] = newProposalId;
 
         // lock user tokens
-        voteLock.lockCreatorBalance(msg.sender, WARM_UP + ACTIVE);
+        voteLock.lockCreatorBalance(msg.sender, WARM_UP);
 
         // emit here
 
@@ -194,25 +199,48 @@ contract VoteProposal {
     function state(uint proposalId) public view returns (ProposalState) {
         require(lastProposalId >= proposalId && proposalId > 0, "invalid proposal id");
         Proposal storage proposal = proposals[proposalId];
-        if (proposal.canceled) {
+
+        // compute state by time
+        if (proposal.canceled || block.timestamp > proposal.createTime + WARM_UP + ACTIVE && proposal.startTime == 0) {
             return ProposalState.Canceled;
-        } else if (proposal.startTime == 0) {
-            return ProposalState.WarmUp;
-        } else if (block.timestamp - 1 < proposal.startTime + ACTIVE) {
-            return ProposalState.Active;
-        } else if (proposal.forVotes <= proposal.againstVotes || proposal.forVotes < proposal.quorum) {
-            return ProposalState.Failed;
-        } else if (proposal.eta == 0) {
-            return ProposalState.Accepted;
-        } else if (block.timestamp - 1 < proposal.eta) {
-            return ProposalState.Queued;
-        } else if (block.timestamp - 1 >= proposal.eta && block.timestamp - 1 <= proposal.eta + GRACE_PERIOD && proposal.executed == false) {
-            return ProposalState.Grace;
-        } else if (block.timestamp - 1 >= proposal.eta && block.timestamp - 1 <= proposal.eta + GRACE_PERIOD && proposal.executed == true) {
-            return ProposalState.Executed;
-        } else {
-            return ProposalState.Expired;
         }
+        if (block.timestamp <= proposal.createTime + WARM_UP) {
+            return ProposalState.WarmUp;
+        }
+        if (block.timestamp > proposal.createTime + WARM_UP && proposal.startTime == 0) {
+            return ProposalState.ReadyForActivation;
+        }
+        if (block.timestamp <= proposal.startTime + ACTIVE) {
+            return ProposalState.Active;
+        }
+
+        // compute state by votes
+        if (proposal.forVotes <= (proposal.forVotes + proposal.againstVotes) * MINIMUM_FOR_VOTES_THRESHOLD || (proposal.forVotes + proposal.againstVotes) < proposal.quorum) {
+            return ProposalState.Failed;
+        }
+        // vote is accepted
+
+        // vote is accepted but not sent to be executed
+        if (proposal.eta == 0) {
+            return ProposalState.Accepted;
+        }
+
+        // vote sent to be executed
+        if (block.timestamp < proposal.eta) {
+            return ProposalState.Queued;
+        }
+        // vote can be executed
+        if (block.timestamp <= proposal.eta + GRACE_PERIOD && proposal.executed == false) {
+            return ProposalState.Grace;
+        }
+        // vote is executed
+        if (proposal.executed == true) {
+            return ProposalState.Executed;
+        }
+
+        // return expired for votes not executed in grace period
+        return ProposalState.Expired;
+
     }
 
     function castVote(uint proposalId, bool support) public {
@@ -224,6 +252,13 @@ contract VoteProposal {
     }
 
     // internal
+
+    function _startVote (uint proposalId) internal {
+        Proposal storage proposal = proposals[proposalId];
+        if (state(proposalId) == ProposalState.Active && proposal.startTime == 0 && (proposal.createTime + WARM_UP + ACTIVE) > block.timestamp -1) {
+            proposal.startTime = block.timestamp - 1;
+        }
+    }
 
     function _castVote(address voter, uint proposalId, bool support) internal {
         require(state(proposalId) == ProposalState.Active, "Voting is closed");
