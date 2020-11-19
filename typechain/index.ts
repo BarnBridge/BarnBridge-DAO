@@ -11,5 +11,3 @@ export { BarnMockFactory } from "./BarnMockFactory";
 export type { BarnMock } from "./BarnMock";
 export { Erc20MockFactory } from "./Erc20MockFactory";
 export type { Erc20Mock } from "./Erc20Mock";
-export { VoteLockFactory } from "./VoteLockFactory";
-export type { VoteLock } from "./VoteLock";

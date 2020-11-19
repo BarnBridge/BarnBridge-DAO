@@ -40,6 +40,7 @@ interface GovernanceInterface extends ethers.utils.Interface {
     "propose(address[],uint256[],string[],bytes[],string,string)": FunctionFragment;
     "queue(uint256)": FunctionFragment;
     "queuedTransactions(bytes32)": FunctionFragment;
+    "startVote(uint256)": FunctionFragment;
     "state(uint256)": FunctionFragment;
   };
 
@@ -99,6 +100,10 @@ interface GovernanceInterface extends ethers.utils.Interface {
     functionFragment: "queuedTransactions",
     values: [BytesLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "startVote",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(functionFragment: "state", values: [BigNumberish]): string;
 
   decodeFunctionResult(functionFragment: "ACTIVE", data: BytesLike): Result;
@@ -136,6 +141,7 @@ interface GovernanceInterface extends ethers.utils.Interface {
     functionFragment: "queuedTransactions",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "startVote", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "state", data: BytesLike): Result;
 
   events: {};
@@ -411,6 +417,16 @@ export class Governance extends Contract {
       0: boolean;
     }>;
 
+    startVote(
+      proposalId: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "startVote(uint256)"(
+      proposalId: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
     state(
       proposalId: BigNumberish,
       overrides?: CallOverrides
@@ -620,6 +636,16 @@ export class Governance extends Contract {
     overrides?: CallOverrides
   ): Promise<boolean>;
 
+  startVote(
+    proposalId: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "startVote(uint256)"(
+    proposalId: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
   state(proposalId: BigNumberish, overrides?: CallOverrides): Promise<number>;
 
   "state(uint256)"(
@@ -813,6 +839,16 @@ export class Governance extends Contract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
+    startVote(
+      proposalId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "startVote(uint256)"(
+      proposalId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     state(proposalId: BigNumberish, overrides?: CallOverrides): Promise<number>;
 
     "state(uint256)"(
@@ -960,6 +996,16 @@ export class Governance extends Contract {
     "queuedTransactions(bytes32)"(
       arg0: BytesLike,
       overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    startVote(
+      proposalId: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    "startVote(uint256)"(
+      proposalId: BigNumberish,
+      overrides?: Overrides
     ): Promise<BigNumber>;
 
     state(
@@ -1124,6 +1170,16 @@ export class Governance extends Contract {
     "queuedTransactions(bytes32)"(
       arg0: BytesLike,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    startVote(
+      proposalId: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "startVote(uint256)"(
+      proposalId: BigNumberish,
+      overrides?: Overrides
     ): Promise<PopulatedTransaction>;
 
     state(

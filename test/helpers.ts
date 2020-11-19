@@ -2,43 +2,27 @@
 // @ts-ignore
 import { ethers } from 'hardhat';
 import { BigNumber, ContractFactory } from 'ethers';
-import { Erc20Mock, VoteLock, Timelock, VoteProposal } from '../typechain';
+import { BarnMock, Governance } from '../typechain';
 
 export const stakingEpochStart = 1603065600;
 export const stakingEpochDuration = 604800;
 export const tenPow18 = BigNumber.from(10).pow(18);
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-export async function deployVoteLock (bond:string, cv:string, treasury:string): Promise<VoteLock> {
-    const VoteLock: ContractFactory = await ethers.getContractFactory('VoteLock');
-    const lock: VoteLock = (await VoteLock.deploy(bond, cv, treasury)) as VoteLock;
-    await lock.deployed();
+export async function deployBarn (): Promise<BarnMock> {
+    const BarnMock: ContractFactory = await ethers.getContractFactory('BarnMock');
+    const barn: BarnMock = (await BarnMock.deploy()) as BarnMock;
+    await barn.deployed();
 
-    return lock;
+    return barn;
 }
 
-export async function deployTimelock (): Promise<Timelock> {
-    const Timelock: ContractFactory = await ethers.getContractFactory('Timelock');
-    const lock: Timelock = (await Timelock.deploy()) as Timelock;
-    await lock.deployed();
+export async function deployGovernance (): Promise<Governance> {
+    const Governance: ContractFactory = await ethers.getContractFactory('Governance');
+    const governance: Governance = (await Governance.deploy()) as Governance;
+    await governance.deployed();
 
-    return lock;
-}
-
-export async function deployVoteProposal (voteLock:string, timeLock:string): Promise<VoteProposal> {
-    const VoteProposal: ContractFactory = await ethers.getContractFactory('VoteProposal');
-    const voteProposal: VoteProposal = (await VoteProposal.deploy(voteLock, timeLock)) as VoteProposal;
-    await voteProposal.deployed();
-
-    return voteProposal;
-}
-
-export async function deployBond ():Promise<Erc20Mock> {
-    const ERC20Mock: ContractFactory = await ethers.getContractFactory('ERC20Mock');
-    const bond = (await ERC20Mock.deploy()) as Erc20Mock;
-    await bond.deployed();
-
-    return bond;
+    return governance;
 }
 
 export async function getLatestBlock (): Promise<any> {
