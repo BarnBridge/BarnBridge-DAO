@@ -1,27 +1,28 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.7.1;
 
+import "./Constants.sol";
 
-contract Timelock  {
-    uint constant GRACE_PERIOD = 2 days;
+
+contract Bridge is Constants {
 
     mapping (bytes32 => bool) public queuedTransactions;
 
 
-    function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public returns (bytes32) {
+    function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) internal returns (bytes32) {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
 
         queuedTransactions[txHash] = true;
         return txHash;
     }
 
-    function cancelTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public {
+    function cancelTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) internal {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         queuedTransactions[txHash] = false;
     }
 
 
-    function executeTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public payable returns (bytes memory) {
+    function executeTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) internal returns (bytes memory) {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         require(getBlockTimestamp() >= eta, "Timelock::executeTransaction: Transaction hasn't surpassed time lock.");
         require(getBlockTimestamp() <= eta + GRACE_PERIOD, "Timelock::executeTransaction: Transaction is stale.");

@@ -3,11 +3,13 @@
 /* eslint-disable */
 export { Erc20Factory } from "./Erc20Factory";
 export type { Erc20 } from "./Erc20";
+export { BridgeFactory } from "./BridgeFactory";
+export type { Bridge } from "./Bridge";
+export { GovernanceFactory } from "./GovernanceFactory";
+export type { Governance } from "./Governance";
+export { BarnMockFactory } from "./BarnMockFactory";
+export type { BarnMock } from "./BarnMock";
 export { Erc20MockFactory } from "./Erc20MockFactory";
 export type { Erc20Mock } from "./Erc20Mock";
-export { TimelockFactory } from "./TimelockFactory";
-export type { Timelock } from "./Timelock";
 export { VoteLockFactory } from "./VoteLockFactory";
 export type { VoteLock } from "./VoteLock";
-export { VoteProposalFactory } from "./VoteProposalFactory";
-export type { VoteProposal } from "./VoteProposal";

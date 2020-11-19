@@ -2,18 +2,10 @@
 pragma solidity ^0.7.1;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/IVoteLock.sol";
-import "./interfaces/ITimeLock.sol";
+import "./interfaces/IBarn.sol";
+import "./Bridge.sol";
 
-contract VoteProposal {
-
-    uint public constant WARM_UP = 2 days;
-    uint public constant ACTIVE = 2 days;
-    uint public constant QUEUE = 2 days;
-    uint public constant GRACE_PERIOD = 2 days;
-
-    uint public MINIMUM_FOR_VOTES_THRESHOLD = 60;
-
+contract Governance is Bridge {
 
     enum ProposalState {
         WarmUp,
@@ -93,12 +85,16 @@ contract VoteProposal {
     uint public lastProposalId;
     mapping (uint => Proposal) public proposals;
     mapping (address => uint) public latestProposalIds;
-    IVoteLock voteLock;
-    ITimeLock timeLock;
+    IBarn barn;
+    address governor;
+    bool isInitialized;
 
-    constructor (address vl, address tl) {
-        voteLock = IVoteLock(vl);
-        timeLock = ITimeLock(tl);
+
+    function initialize (address barnAddr, address govAddr) public {
+        require (isInitialized == false, 'Contract already initialized.');
+        barn = IBarn(barnAddr);
+        governor = govAddr;
+        isInitialized = true;
     }
 
     function proposalMaxOperations() public pure returns (uint) { return 10; } // 10 actions
@@ -108,7 +104,7 @@ contract VoteProposal {
 
         // requires for the user
         // check voting power
-        require(voteLock.votingPowerAtTs(msg.sender, block.timestamp - 1) >= voteLock.bondCirculatingSupply() / 100, "User must own at least 1%");
+        require(barn.votingPowerAtTs(msg.sender, block.timestamp - 1) >= barn.bondCirculatingSupply() / 100, "User must own at least 1%");
         require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "Proposal function information arity mismatch");
         require(targets.length != 0, "Must provide actions");
         require(targets.length <= proposalMaxOperations(), "Too many actions on a vote");
@@ -135,21 +131,38 @@ contract VoteProposal {
         newProposal.signatures = signatures;
         newProposal.calldatas = calldatas;
         newProposal.createTime = block.timestamp - 1;
-//        newProposal.startTime = block.timestamp - 1 + WARM_UP;
 
         lastProposalId = newProposalId;
         latestProposalIds[msg.sender] = newProposalId;
 
         // lock user tokens
-        voteLock.lockCreatorBalance(msg.sender, WARM_UP);
+        barn.lockCreatorBalance(msg.sender, WARM_UP);
 
         // emit here
 
         // @TODO Emit
 
         // return result
-        return lastProposalId;
+        return newProposalId;
     }
+
+    function startVote (uint proposalId) public {
+        _startVote(proposalId);
+    }
+
+
+    function castVote(uint proposalId, bool support) public {
+        if (state(proposalId) == ProposalState.ReadyForActivation) {
+            _startVote(proposalId);
+        }
+        return _castVote(msg.sender, proposalId, support);
+    }
+
+    function cancelVote(uint proposalId) public {
+        return _cancelVote(msg.sender, proposalId);
+    }
+
+
 
     function queue(uint proposalId) public {
         require(state(proposalId) == ProposalState.Accepted, "Proposal can only be queued if it is succeeded");
@@ -159,15 +172,11 @@ contract VoteProposal {
         uint eta = proposal.startTime + ACTIVE + QUEUE;
 
         for (uint i = 0; i < proposal.targets.length; i++) {
-            _queueOrRevert(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
+            require(!queuedTransactions[keccak256(abi.encode(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta))], "proposal action already queued at eta");
+            queueTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
         }
         proposal.eta = eta;
         // @TODO Emit
-    }
-
-    function _queueOrRevert(address target, uint value, string memory signature, bytes memory data, uint eta) internal {
-        require(!timeLock.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta))), "proposal action already queued at eta");
-        timeLock.queueTransaction(target, value, signature, data, eta);
     }
 
     function execute(uint proposalId) public payable {
@@ -175,7 +184,7 @@ contract VoteProposal {
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
-            timeLock.executeTransaction{value: proposal.values[i]}(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+            executeTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
         // @TODO Emit
     }
@@ -186,10 +195,10 @@ contract VoteProposal {
         require(state != ProposalState.Expired, "Cannot cancel expired proposal");
 
         Proposal storage proposal = proposals[proposalId];
-        require (proposal.proposer == msg.sender, "Only the proposal creator can cancel a proposal");
+        require (_canCancel(proposalId), "Only the proposal creator can cancel a proposal");
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
-            timeLock.cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+            cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
         // @TODO Emit
     }
@@ -243,21 +252,12 @@ contract VoteProposal {
 
     }
 
-    function castVote(uint proposalId, bool support) public {
-        return _castVote(msg.sender, proposalId, support);
-    }
-
-    function cancelVote(uint proposalId) public {
-        return _cancelVote(msg.sender, proposalId);
-    }
-
     // internal
 
     function _startVote (uint proposalId) internal {
+        require(state(proposalId) == ProposalState.ReadyForActivation, 'Proposal needs to be in RedyForActivation state');
         Proposal storage proposal = proposals[proposalId];
-        if (state(proposalId) == ProposalState.Active && proposal.startTime == 0 && (proposal.createTime + WARM_UP + ACTIVE) > block.timestamp -1) {
-            proposal.startTime = block.timestamp - 1;
-        }
+        proposal.startTime = block.timestamp;
     }
 
     function _castVote(address voter, uint proposalId, bool support) internal {
@@ -267,7 +267,7 @@ contract VoteProposal {
         // exit if user already voted
         require(receipt.hasVoted && receipt.support != support, "Already voted this option");
 
-        uint votes = voteLock.votingPowerAtTs(voter, proposal.startTime);
+        uint votes = barn.votingPowerAtTs(voter, proposal.startTime);
 
         // reset votes if user changed his vote
         if (receipt.hasVoted) {
@@ -290,7 +290,7 @@ contract VoteProposal {
         require(state(proposalId) == ProposalState.Active, "Voting is closed");
         Proposal storage proposal = proposals[proposalId];
         Receipt storage receipt = proposal.receipts[voter];
-        uint votes = voteLock.votingPowerAtTs(voter, proposal.startTime);
+        uint votes = barn.votingPowerAtTs(voter, proposal.startTime);
 
         // exit if user already voted
         require(receipt.hasVoted, "Cannot cancel if not voted yet");
@@ -302,6 +302,15 @@ contract VoteProposal {
         receipt.hasVoted = false;
         receipt.votes = 0;
         receipt.support = false;
+    }
+
+    function _canCancel(uint proposalId) internal view returns (bool){
+        Proposal storage proposal = proposals[proposalId];
+
+        if (msg.sender == proposal.proposer || governor == proposal.proposer) {
+            return true;
+        }
+        return false;
     }
 
 
