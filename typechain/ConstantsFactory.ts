@@ -58,6 +58,19 @@ const _abi = [
   },
   {
     inputs: [],
+    name: "MINIMUM_QUORUM",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "QUEUE",
     outputs: [
       {

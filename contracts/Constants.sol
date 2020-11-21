@@ -7,5 +7,6 @@ abstract contract Constants {
     uint public constant QUEUE = 2 days;
     uint public constant GRACE_PERIOD = 2 days;
     uint public constant MINIMUM_FOR_VOTES_THRESHOLD = 60;
+    uint public constant MINIMUM_QUORUM = 10;
 
 }

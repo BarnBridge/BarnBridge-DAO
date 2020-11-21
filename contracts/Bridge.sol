@@ -24,8 +24,8 @@ contract Bridge is Constants {
 
     function executeTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) internal returns (bytes memory) {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        require(getBlockTimestamp() >= eta, "Timelock::executeTransaction: Transaction hasn't surpassed time lock.");
-        require(getBlockTimestamp() <= eta + GRACE_PERIOD, "Timelock::executeTransaction: Transaction is stale.");
+        require(getBlockTimestamp() >= eta, "executeTransaction: Transaction hasn't surpassed time lock.");
+        require(getBlockTimestamp() <= eta + GRACE_PERIOD, "executeTransaction: Transaction is stale.");
 
         queuedTransactions[txHash] = false;
 
@@ -36,10 +36,9 @@ contract Bridge is Constants {
         } else {
             callData = abi.encodePacked(bytes4(keccak256(bytes(signature))), data);
         }
-
         // solium-disable-next-line security/no-call-value
         (bool success, bytes memory returnData) = target.call{value: value}(callData);
-        require(success, "Timelock::executeTransaction: Transaction execution reverted.");
+        require(success, "Transaction execution reverted.");
 
 //        emit ExecuteTransaction(txHash, target, value, signature, data, eta);
 

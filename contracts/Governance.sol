@@ -23,26 +23,21 @@ contract Governance is Bridge {
     struct Receipt {
         // Whether or not a vote has been cast
         bool hasVoted;
-
         // The number of votes the voter had, which were cast
         uint votes;
-
         // support
         bool support;
     }
 
     struct Proposal {
-
         // proposal identifiers
         // unique id
         uint id;
         // Creator of the proposal
         address proposer;
-
         // proposal description
         string description;
         string title;
-
         // proposal technical details
         // ordered list of target addresses to be made
         address[] targets;
@@ -90,6 +85,7 @@ contract Governance is Bridge {
     bool isInitialized;
 
 
+    // executed only once.
     function initialize (address barnAddr, address govAddr) public {
         require (isInitialized == false, 'Contract already initialized.');
         barn = IBarn(barnAddr);
@@ -97,7 +93,6 @@ contract Governance is Bridge {
         isInitialized = true;
     }
 
-    function proposalMaxOperations() public pure returns (uint) { return 10; } // 10 actions
 
 
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description, string memory title) public returns (uint) {
@@ -109,14 +104,12 @@ contract Governance is Bridge {
         require(targets.length != 0, "Must provide actions");
         require(targets.length <= proposalMaxOperations(), "Too many actions on a vote");
 
-
-        // get storage
-
         // check if user has another running vote
         uint latestProposalId = latestProposalIds[msg.sender];
         if (latestProposalId != 0) {
             ProposalState proposersLatestProposalState = state(latestProposalId);
             require(proposersLatestProposalState != ProposalState.Active, "One live proposal per proposer, found an already active proposal");
+            require(proposersLatestProposalState != ProposalState.ReadyForActivation, "One live proposal per proposer, found an already ReadyForActivation proposal");
             require(proposersLatestProposalState != ProposalState.WarmUp, "One live proposal per proposer, found an already warmup proposal");
         }
 
@@ -180,7 +173,7 @@ contract Governance is Bridge {
     }
 
     function execute(uint proposalId) public payable {
-        require(state(proposalId) == ProposalState.Queued, "Proposal can only be executed if it is queued");
+        require(state(proposalId) == ProposalState.Queued || state(proposalId) == ProposalState.Grace, "Proposal can only be executed if it is queued");
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -224,7 +217,7 @@ contract Governance is Bridge {
         }
 
         // compute state by votes
-        if (proposal.forVotes <= (proposal.forVotes + proposal.againstVotes) * MINIMUM_FOR_VOTES_THRESHOLD || (proposal.forVotes + proposal.againstVotes) < proposal.quorum) {
+        if (proposal.forVotes <= ((proposal.forVotes + proposal.againstVotes) * MINIMUM_FOR_VOTES_THRESHOLD) / 100 || (proposal.forVotes + proposal.againstVotes) < proposal.quorum) {
             return ProposalState.Failed;
         }
         // vote is accepted
@@ -258,6 +251,7 @@ contract Governance is Bridge {
         require(state(proposalId) == ProposalState.ReadyForActivation, 'Proposal needs to be in RedyForActivation state');
         Proposal storage proposal = proposals[proposalId];
         proposal.startTime = block.timestamp;
+        proposal.quorum = (barn.bondCirculatingSupply() * MINIMUM_QUORUM) / 100;
     }
 
     function _castVote(address voter, uint proposalId, bool support) internal {
@@ -265,7 +259,7 @@ contract Governance is Bridge {
         Proposal storage proposal = proposals[proposalId];
         Receipt storage receipt = proposal.receipts[voter];
         // exit if user already voted
-        require(receipt.hasVoted && receipt.support != support, "Already voted this option");
+        require(receipt.hasVoted == false || receipt.hasVoted && receipt.support != support, "Already voted this option");
 
         uint votes = barn.votingPowerAtTs(voter, proposal.startTime);
 
@@ -292,7 +286,7 @@ contract Governance is Bridge {
         Receipt storage receipt = proposal.receipts[voter];
         uint votes = barn.votingPowerAtTs(voter, proposal.startTime);
 
-        // exit if user already voted
+        // exit if user didn't vote
         require(receipt.hasVoted, "Cannot cancel if not voted yet");
         if (receipt.support) {
             proposal.forVotes = sub256(proposal.forVotes, votes);
@@ -315,6 +309,7 @@ contract Governance is Bridge {
 
 
     // pure functions
+    function proposalMaxOperations() public pure returns (uint) { return 10; } // 10 actions
 
     function add256(uint256 a, uint256 b) internal pure returns (uint) {
         uint c = a + b;

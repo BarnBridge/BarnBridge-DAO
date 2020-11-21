@@ -8,6 +8,7 @@ contract BarnMock {
     uint private _circulatingSupply;
     mapping (address => uint) private _votingPowerAtTs;
     bool public lockCreatorBalanceHasBeenCalled;
+    bool public withdrawHasBeenCalled;
 
 
     // lock the balance of a proposal creator until the voting ends; only callable by DAO
@@ -31,5 +32,9 @@ contract BarnMock {
     }
     function setVotingPower (address user, uint val) public {
         _votingPowerAtTs[user] = val;
+    }
+
+    function withdraw(uint256 amount) external {
+        withdrawHasBeenCalled = true;
     }
 }

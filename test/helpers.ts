@@ -41,12 +41,3 @@ export async function moveAtTimestamp (timestamp: number): Promise<void> {
     await ethers.provider.send('evm_mine', []);
 }
 
-export async function getCurrentEpoch (): Promise<number> {
-    const currentBlockTs = parseInt((await getLatestBlock()).timestamp);
-
-    if (currentBlockTs < stakingEpochStart) {
-        return 0;
-    }
-
-    return Math.floor((currentBlockTs - stakingEpochStart) / stakingEpochDuration) + 1;
-}

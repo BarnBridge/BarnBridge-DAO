@@ -28,6 +28,8 @@ interface BarnMockInterface extends ethers.utils.Interface {
     "setBondCirculatingSupply(uint256)": FunctionFragment;
     "setVotingPower(address,uint256)": FunctionFragment;
     "votingPowerAtTs(address,uint256)": FunctionFragment;
+    "withdraw(uint256)": FunctionFragment;
+    "withdrawHasBeenCalled()": FunctionFragment;
   };
 
   encodeFunctionData(
@@ -54,6 +56,14 @@ interface BarnMockInterface extends ethers.utils.Interface {
     functionFragment: "votingPowerAtTs",
     values: [string, BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "withdraw",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawHasBeenCalled",
+    values?: undefined
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "bondCirculatingSupply",
@@ -77,6 +87,11 @@ interface BarnMockInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "votingPowerAtTs",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawHasBeenCalled",
     data: BytesLike
   ): Result;
 
@@ -170,6 +185,28 @@ export class BarnMock extends Contract {
     ): Promise<{
       0: BigNumber;
     }>;
+
+    withdraw(
+      amount: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "withdraw(uint256)"(
+      amount: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    withdrawHasBeenCalled(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: boolean;
+    }>;
+
+    "withdrawHasBeenCalled()"(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: boolean;
+    }>;
   };
 
   bondCirculatingSupply(overrides?: CallOverrides): Promise<BigNumber>;
@@ -227,6 +264,20 @@ export class BarnMock extends Contract {
     timestamp: BigNumberish,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
+
+  withdraw(
+    amount: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "withdraw(uint256)"(
+    amount: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  withdrawHasBeenCalled(overrides?: CallOverrides): Promise<boolean>;
+
+  "withdrawHasBeenCalled()"(overrides?: CallOverrides): Promise<boolean>;
 
   callStatic: {
     bondCirculatingSupply(overrides?: CallOverrides): Promise<BigNumber>;
@@ -286,6 +337,17 @@ export class BarnMock extends Contract {
       timestamp: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    withdraw(amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
+
+    "withdraw(uint256)"(
+      amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    withdrawHasBeenCalled(overrides?: CallOverrides): Promise<boolean>;
+
+    "withdrawHasBeenCalled()"(overrides?: CallOverrides): Promise<boolean>;
   };
 
   filters: {};
@@ -348,6 +410,17 @@ export class BarnMock extends Contract {
       timestamp: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    withdraw(amount: BigNumberish, overrides?: Overrides): Promise<BigNumber>;
+
+    "withdraw(uint256)"(
+      amount: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    withdrawHasBeenCalled(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "withdrawHasBeenCalled()"(overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -410,6 +483,24 @@ export class BarnMock extends Contract {
     "votingPowerAtTs(address,uint256)"(
       user: string,
       timestamp: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    withdraw(
+      amount: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "withdraw(uint256)"(
+      amount: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    withdrawHasBeenCalled(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "withdrawHasBeenCalled()"(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
   };

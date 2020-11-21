@@ -24,6 +24,7 @@ interface ConstantsInterface extends ethers.utils.Interface {
     "ACTIVE()": FunctionFragment;
     "GRACE_PERIOD()": FunctionFragment;
     "MINIMUM_FOR_VOTES_THRESHOLD()": FunctionFragment;
+    "MINIMUM_QUORUM()": FunctionFragment;
     "QUEUE()": FunctionFragment;
     "WARM_UP()": FunctionFragment;
   };
@@ -37,6 +38,10 @@ interface ConstantsInterface extends ethers.utils.Interface {
     functionFragment: "MINIMUM_FOR_VOTES_THRESHOLD",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "MINIMUM_QUORUM",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "QUEUE", values?: undefined): string;
   encodeFunctionData(functionFragment: "WARM_UP", values?: undefined): string;
 
@@ -47,6 +52,10 @@ interface ConstantsInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "MINIMUM_FOR_VOTES_THRESHOLD",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "MINIMUM_QUORUM",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "QUEUE", data: BytesLike): Result;
@@ -105,6 +114,18 @@ export class Constants extends Contract {
       0: BigNumber;
     }>;
 
+    MINIMUM_QUORUM(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
+    "MINIMUM_QUORUM()"(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: BigNumber;
+    }>;
+
     QUEUE(
       overrides?: CallOverrides
     ): Promise<{
@@ -144,6 +165,10 @@ export class Constants extends Contract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
+  MINIMUM_QUORUM(overrides?: CallOverrides): Promise<BigNumber>;
+
+  "MINIMUM_QUORUM()"(overrides?: CallOverrides): Promise<BigNumber>;
+
   QUEUE(overrides?: CallOverrides): Promise<BigNumber>;
 
   "QUEUE()"(overrides?: CallOverrides): Promise<BigNumber>;
@@ -166,6 +191,10 @@ export class Constants extends Contract {
     "MINIMUM_FOR_VOTES_THRESHOLD()"(
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    MINIMUM_QUORUM(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "MINIMUM_QUORUM()"(overrides?: CallOverrides): Promise<BigNumber>;
 
     QUEUE(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -193,6 +222,10 @@ export class Constants extends Contract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    MINIMUM_QUORUM(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "MINIMUM_QUORUM()"(overrides?: CallOverrides): Promise<BigNumber>;
+
     QUEUE(overrides?: CallOverrides): Promise<BigNumber>;
 
     "QUEUE()"(overrides?: CallOverrides): Promise<BigNumber>;
@@ -216,6 +249,12 @@ export class Constants extends Contract {
     ): Promise<PopulatedTransaction>;
 
     "MINIMUM_FOR_VOTES_THRESHOLD()"(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    MINIMUM_QUORUM(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    "MINIMUM_QUORUM()"(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
