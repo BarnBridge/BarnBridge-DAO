@@ -29,10 +29,15 @@ interface GovernanceInterface extends ethers.utils.Interface {
     "MINIMUM_QUORUM()": FunctionFragment;
     "QUEUE()": FunctionFragment;
     "WARM_UP()": FunctionFragment;
+    "abdicate()": FunctionFragment;
+    "anoint(address)": FunctionFragment;
     "cancel(uint256)": FunctionFragment;
     "cancelVote(uint256)": FunctionFragment;
     "castVote(uint256,bool)": FunctionFragment;
     "execute(uint256)": FunctionFragment;
+    "getActions(uint256)": FunctionFragment;
+    "getReceipt(uint256,address)": FunctionFragment;
+    "guardian()": FunctionFragment;
     "initialize(address,address)": FunctionFragment;
     "lastProposalId()": FunctionFragment;
     "latestProposalIds(address)": FunctionFragment;
@@ -60,6 +65,8 @@ interface GovernanceInterface extends ethers.utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "QUEUE", values?: undefined): string;
   encodeFunctionData(functionFragment: "WARM_UP", values?: undefined): string;
+  encodeFunctionData(functionFragment: "abdicate", values?: undefined): string;
+  encodeFunctionData(functionFragment: "anoint", values: [string]): string;
   encodeFunctionData(
     functionFragment: "cancel",
     values: [BigNumberish]
@@ -76,6 +83,15 @@ interface GovernanceInterface extends ethers.utils.Interface {
     functionFragment: "execute",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "getActions",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getReceipt",
+    values: [BigNumberish, string]
+  ): string;
+  encodeFunctionData(functionFragment: "guardian", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "initialize",
     values: [string, string]
@@ -126,10 +142,15 @@ interface GovernanceInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "QUEUE", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "WARM_UP", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "abdicate", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "anoint", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "cancel", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "cancelVote", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "castVote", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "execute", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "getActions", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "getReceipt", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "guardian", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "lastProposalId",
@@ -242,6 +263,20 @@ export class Governance extends Contract {
       0: BigNumber;
     }>;
 
+    abdicate(overrides?: Overrides): Promise<ContractTransaction>;
+
+    "abdicate()"(overrides?: Overrides): Promise<ContractTransaction>;
+
+    anoint(
+      newGuardian: string,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "anoint(address)"(
+      newGuardian: string,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
     cancel(
       proposalId: BigNumberish,
       overrides?: Overrides
@@ -284,15 +319,85 @@ export class Governance extends Contract {
       overrides?: PayableOverrides
     ): Promise<ContractTransaction>;
 
+    getActions(
+      proposalId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      targets: string[];
+      values: BigNumber[];
+      signatures: string[];
+      calldatas: string[];
+      0: string[];
+      1: BigNumber[];
+      2: string[];
+      3: string[];
+    }>;
+
+    "getActions(uint256)"(
+      proposalId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      targets: string[];
+      values: BigNumber[];
+      signatures: string[];
+      calldatas: string[];
+      0: string[];
+      1: BigNumber[];
+      2: string[];
+      3: string[];
+    }>;
+
+    getReceipt(
+      proposalId: BigNumberish,
+      voter: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: {
+        hasVoted: boolean;
+        votes: BigNumber;
+        support: boolean;
+        0: boolean;
+        1: BigNumber;
+        2: boolean;
+      };
+    }>;
+
+    "getReceipt(uint256,address)"(
+      proposalId: BigNumberish,
+      voter: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: {
+        hasVoted: boolean;
+        votes: BigNumber;
+        support: boolean;
+        0: boolean;
+        1: BigNumber;
+        2: boolean;
+      };
+    }>;
+
+    guardian(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: string;
+    }>;
+
+    "guardian()"(
+      overrides?: CallOverrides
+    ): Promise<{
+      0: string;
+    }>;
+
     initialize(
       barnAddr: string,
-      govAddr: string,
+      guardianAddress: string,
       overrides?: Overrides
     ): Promise<ContractTransaction>;
 
     "initialize(address,address)"(
       barnAddr: string,
-      govAddr: string,
+      guardianAddress: string,
       overrides?: Overrides
     ): Promise<ContractTransaction>;
 
@@ -489,6 +594,20 @@ export class Governance extends Contract {
 
   "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
 
+  abdicate(overrides?: Overrides): Promise<ContractTransaction>;
+
+  "abdicate()"(overrides?: Overrides): Promise<ContractTransaction>;
+
+  anoint(
+    newGuardian: string,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "anoint(address)"(
+    newGuardian: string,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
   cancel(
     proposalId: BigNumberish,
     overrides?: Overrides
@@ -531,15 +650,73 @@ export class Governance extends Contract {
     overrides?: PayableOverrides
   ): Promise<ContractTransaction>;
 
+  getActions(
+    proposalId: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<{
+    targets: string[];
+    values: BigNumber[];
+    signatures: string[];
+    calldatas: string[];
+    0: string[];
+    1: BigNumber[];
+    2: string[];
+    3: string[];
+  }>;
+
+  "getActions(uint256)"(
+    proposalId: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<{
+    targets: string[];
+    values: BigNumber[];
+    signatures: string[];
+    calldatas: string[];
+    0: string[];
+    1: BigNumber[];
+    2: string[];
+    3: string[];
+  }>;
+
+  getReceipt(
+    proposalId: BigNumberish,
+    voter: string,
+    overrides?: CallOverrides
+  ): Promise<{
+    hasVoted: boolean;
+    votes: BigNumber;
+    support: boolean;
+    0: boolean;
+    1: BigNumber;
+    2: boolean;
+  }>;
+
+  "getReceipt(uint256,address)"(
+    proposalId: BigNumberish,
+    voter: string,
+    overrides?: CallOverrides
+  ): Promise<{
+    hasVoted: boolean;
+    votes: BigNumber;
+    support: boolean;
+    0: boolean;
+    1: BigNumber;
+    2: boolean;
+  }>;
+
+  guardian(overrides?: CallOverrides): Promise<string>;
+
+  "guardian()"(overrides?: CallOverrides): Promise<string>;
+
   initialize(
     barnAddr: string,
-    govAddr: string,
+    guardianAddress: string,
     overrides?: Overrides
   ): Promise<ContractTransaction>;
 
   "initialize(address,address)"(
     barnAddr: string,
-    govAddr: string,
+    guardianAddress: string,
     overrides?: Overrides
   ): Promise<ContractTransaction>;
 
@@ -705,6 +882,17 @@ export class Governance extends Contract {
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
 
+    abdicate(overrides?: CallOverrides): Promise<void>;
+
+    "abdicate()"(overrides?: CallOverrides): Promise<void>;
+
+    anoint(newGuardian: string, overrides?: CallOverrides): Promise<void>;
+
+    "anoint(address)"(
+      newGuardian: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     cancel(proposalId: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     "cancel(uint256)"(
@@ -741,15 +929,73 @@ export class Governance extends Contract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    getActions(
+      proposalId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      targets: string[];
+      values: BigNumber[];
+      signatures: string[];
+      calldatas: string[];
+      0: string[];
+      1: BigNumber[];
+      2: string[];
+      3: string[];
+    }>;
+
+    "getActions(uint256)"(
+      proposalId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      targets: string[];
+      values: BigNumber[];
+      signatures: string[];
+      calldatas: string[];
+      0: string[];
+      1: BigNumber[];
+      2: string[];
+      3: string[];
+    }>;
+
+    getReceipt(
+      proposalId: BigNumberish,
+      voter: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      hasVoted: boolean;
+      votes: BigNumber;
+      support: boolean;
+      0: boolean;
+      1: BigNumber;
+      2: boolean;
+    }>;
+
+    "getReceipt(uint256,address)"(
+      proposalId: BigNumberish,
+      voter: string,
+      overrides?: CallOverrides
+    ): Promise<{
+      hasVoted: boolean;
+      votes: BigNumber;
+      support: boolean;
+      0: boolean;
+      1: BigNumber;
+      2: boolean;
+    }>;
+
+    guardian(overrides?: CallOverrides): Promise<string>;
+
+    "guardian()"(overrides?: CallOverrides): Promise<string>;
+
     initialize(
       barnAddr: string,
-      govAddr: string,
+      guardianAddress: string,
       overrides?: CallOverrides
     ): Promise<void>;
 
     "initialize(address,address)"(
       barnAddr: string,
-      govAddr: string,
+      guardianAddress: string,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -915,6 +1161,17 @@ export class Governance extends Contract {
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
 
+    abdicate(overrides?: Overrides): Promise<BigNumber>;
+
+    "abdicate()"(overrides?: Overrides): Promise<BigNumber>;
+
+    anoint(newGuardian: string, overrides?: Overrides): Promise<BigNumber>;
+
+    "anoint(address)"(
+      newGuardian: string,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
     cancel(proposalId: BigNumberish, overrides?: Overrides): Promise<BigNumber>;
 
     "cancel(uint256)"(
@@ -954,15 +1211,41 @@ export class Governance extends Contract {
       overrides?: PayableOverrides
     ): Promise<BigNumber>;
 
+    getActions(
+      proposalId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "getActions(uint256)"(
+      proposalId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getReceipt(
+      proposalId: BigNumberish,
+      voter: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "getReceipt(uint256,address)"(
+      proposalId: BigNumberish,
+      voter: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    guardian(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "guardian()"(overrides?: CallOverrides): Promise<BigNumber>;
+
     initialize(
       barnAddr: string,
-      govAddr: string,
+      guardianAddress: string,
       overrides?: Overrides
     ): Promise<BigNumber>;
 
     "initialize(address,address)"(
       barnAddr: string,
-      govAddr: string,
+      guardianAddress: string,
       overrides?: Overrides
     ): Promise<BigNumber>;
 
@@ -1083,6 +1366,20 @@ export class Governance extends Contract {
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    abdicate(overrides?: Overrides): Promise<PopulatedTransaction>;
+
+    "abdicate()"(overrides?: Overrides): Promise<PopulatedTransaction>;
+
+    anoint(
+      newGuardian: string,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "anoint(address)"(
+      newGuardian: string,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
     cancel(
       proposalId: BigNumberish,
       overrides?: Overrides
@@ -1125,15 +1422,41 @@ export class Governance extends Contract {
       overrides?: PayableOverrides
     ): Promise<PopulatedTransaction>;
 
+    getActions(
+      proposalId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "getActions(uint256)"(
+      proposalId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getReceipt(
+      proposalId: BigNumberish,
+      voter: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "getReceipt(uint256,address)"(
+      proposalId: BigNumberish,
+      voter: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    guardian(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    "guardian()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     initialize(
       barnAddr: string,
-      govAddr: string,
+      guardianAddress: string,
       overrides?: Overrides
     ): Promise<PopulatedTransaction>;
 
     "initialize(address,address)"(
       barnAddr: string,
-      govAddr: string,
+      guardianAddress: string,
       overrides?: Overrides
     ): Promise<PopulatedTransaction>;
 

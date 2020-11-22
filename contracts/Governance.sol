@@ -81,15 +81,15 @@ contract Governance is Bridge {
     mapping (uint => Proposal) public proposals;
     mapping (address => uint) public latestProposalIds;
     IBarn barn;
-    address governor;
+    address public guardian;
     bool isInitialized;
 
 
     // executed only once.
-    function initialize (address barnAddr, address govAddr) public {
+    function initialize (address barnAddr, address guardianAddress) public {
         require (isInitialized == false, 'Contract already initialized.');
         barn = IBarn(barnAddr);
-        governor = govAddr;
+        guardian = guardianAddress;
         isInitialized = true;
     }
 
@@ -185,18 +185,28 @@ contract Governance is Bridge {
     function cancel(uint proposalId) public {
         ProposalState state = state(proposalId);
         require(state != ProposalState.Executed, "Cannot cancel executed proposal");
+        require(state != ProposalState.Failed, "Cannot cancel failed proposal");
         require(state != ProposalState.Expired, "Cannot cancel expired proposal");
 
         Proposal storage proposal = proposals[proposalId];
-        require (_canCancel(proposalId), "Only the proposal creator can cancel a proposal");
+        require (_canCancel(proposalId), "Only the proposal creator or guardian can cancel a proposal");
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
             cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
         // @TODO Emit
     }
+    function abdicate () external {
+        require (msg.sender == guardian, 'Must be gov guardian');
+        _abdicate();
+    }
 
+    function anoint (address newGuardian) public {
+        require(msg.sender == address(this), 'Only the gov contract');
+        _anoint(newGuardian);
+    }
 
+    // views
 
     function state(uint proposalId) public view returns (ProposalState) {
         require(lastProposalId >= proposalId && proposalId > 0, "invalid proposal id");
@@ -245,7 +255,25 @@ contract Governance is Bridge {
 
     }
 
+    function getReceipt(uint proposalId, address voter) public view returns (Receipt memory) {
+        return proposals[proposalId].receipts[voter];
+    }
+
+    function getActions(uint proposalId) public view returns (address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas) {
+        Proposal storage p = proposals[proposalId];
+        return (p.targets, p.values, p.signatures, p.calldatas);
+    }
+
     // internal
+
+    function _abdicate () internal {
+        guardian = address(0);
+    }
+
+    // callable only by a proposal
+    function _anoint (address newGuardian) internal {
+        guardian = newGuardian;
+    }
 
     function _startVote (uint proposalId) internal {
         require(state(proposalId) == ProposalState.ReadyForActivation, 'Proposal needs to be in RedyForActivation state');
@@ -301,7 +329,7 @@ contract Governance is Bridge {
     function _canCancel(uint proposalId) internal view returns (bool){
         Proposal storage proposal = proposals[proposalId];
 
-        if (msg.sender == proposal.proposer || governor == proposal.proposer) {
+        if (msg.sender == proposal.proposer || guardian == msg.sender) {
             return true;
         }
         return false;
