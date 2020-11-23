@@ -173,7 +173,7 @@ contract Governance is Bridge {
     }
 
     function execute(uint proposalId) public payable {
-        require(state(proposalId) == ProposalState.Queued || state(proposalId) == ProposalState.Grace, "Proposal can only be executed if it is queued");
+        require(state(proposalId) == ProposalState.Grace, "Proposal can only be executed if it is in grace period");
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {

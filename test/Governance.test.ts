@@ -286,7 +286,8 @@ describe('Governance', function () {
             expect(await governance.lastProposalId()).to.be.equal(1);
             expect(await governance.latestProposalIds(userAddress)).to.be.equal(1);
             expect(await governance.state(1)).to.be.equal(ProposalState.WarmUp);
-            await expect(governance.execute(1)).to.be.revertedWith('Proposal can only be executed if it is queued');
+            await expect(governance.execute(1)).to.be
+                .revertedWith('Proposal can only be executed if it is in grace period');
         });
 
 
