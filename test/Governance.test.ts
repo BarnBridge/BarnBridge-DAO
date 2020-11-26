@@ -351,40 +351,9 @@ describe('Governance', function () {
         });
 
         it('change governor', async function () {
-            await barn.setBondCirculatingSupply(amount);
-            await barn.setVotingPower(userAddress, amount.div(5));
-            await barn.setVotingPower(await voter1.getAddress(), amount.div(20));
-            await barn.setVotingPower(await voter2.getAddress(), amount.div(5));
-            await barn.setVotingPower(await voter3.getAddress(), amount.div(5));
-            const targets = [governance.address];
-            const values = [0];
-            const signatures = ['anoint(address)'];
-            const callDatas = [ejs.utils.defaultAbiCoder.encode(['address'], [await voter1.getAddress()])];
-            await governance.connect(user)
-                .propose(targets, values, signatures, callDatas, 'description', 'title');
-            // expect(await governance.lastProposalId()).to.be.equal(1);
-            const WARM_UP_PERIOD = (await governance.WARM_UP()).toNumber();
-            const ACTIVE_PERIOD = (await governance.ACTIVE()).toNumber();
-            let block = await helpers.getLatestBlock();
-            let ts = parseInt(block.timestamp);
-            await helpers.moveAtTimestamp(ts + WARM_UP_PERIOD);
-            await governance.startVote(1);
-            await governance.connect(voter1)
-                .castVote(1, true);
-            block = await helpers.getLatestBlock();
-            ts = parseInt(block.timestamp);
-            await governance.connect(user)
-                .castVote(1, true);
-            await governance.connect(voter2).castVote(1, true);
-            await helpers.moveAtTimestamp(ts + ACTIVE_PERIOD);
-            expect(await governance.state(1)).to.be.equal(ProposalState.Accepted);
-
-            await governance.queue(1);
-            const proposal = await governance.proposals(1);
-            await helpers.moveAtTimestamp((proposal.eta).toNumber() + 1);
-            expect(await governance.state(1)).to.be.equal(ProposalState.Grace);
-            await governance.execute(1);
-            expect(await governance.state(1)).to.be.equal(ProposalState.Executed);
+            await expect(governance.connect(user).anoint(await voter1.getAddress()))
+                .to.be.revertedWith('Only the gov guardian');
+            await governance.connect(governor).anoint(await voter1.getAddress());
             expect(await governance.guardian()).to.be.equal(await voter1.getAddress());
         });
 
