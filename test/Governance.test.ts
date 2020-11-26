@@ -1,11 +1,8 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import { ethers } from 'hardhat';
-import {Signer, ethers as ejs, BigNumber} from 'ethers';
+import { BigNumber, ethers as ejs, Signer } from 'ethers';
 import * as helpers from './helpers';
 import { expect } from 'chai';
-import { Governance, BarnMock  } from '../typechain';
-import {Constants} from "../typechain/Constants";
+import { BarnMock, Governance } from '../typechain';
 
 describe('Governance', function () {
 
@@ -14,6 +11,7 @@ describe('Governance', function () {
     let governor: Signer;
     let voter1: Signer, voter2: Signer, voter3: Signer;
     let snapshotId: any;
+
     enum ProposalState {
         WarmUp,
         ReadyForActivation,
@@ -26,14 +24,21 @@ describe('Governance', function () {
         Expired,
         Executed
     }
-    const amount = BigNumber.from(28000).mul(BigNumber.from(10).pow(18));
-    beforeEach(async function () {
-        snapshotId = await ethers.provider.send('evm_snapshot', []);
 
+    const amount = BigNumber.from(28000).mul(BigNumber.from(10).pow(18));
+    before(async function () {
         await setupSigners();
         barn = await helpers.deployBarn();
         governance = await helpers.deployGovernance();
         await governance.initialize(barn.address, await governor.getAddress());
+    });
+
+    beforeEach(async function () {
+        snapshotId = await ethers.provider.send('evm_snapshot', []);
+    });
+
+    afterEach(async function () {
+        await ethers.provider.send('evm_revert', [snapshotId]);
     });
 
     describe('General tests', function () {
@@ -79,6 +84,7 @@ describe('Governance', function () {
                 .to.be.revertedWith('Too many actions on a vote');
             // expect(await voteProposal.lastProposalId()).to.be.equal(1);
         });
+
         it('create new proposal', async function () {
             await barn.setBondCirculatingSupply(amount);
             await barn.setVotingPower(userAddress, amount.div(10));
@@ -290,8 +296,6 @@ describe('Governance', function () {
                 .revertedWith('Proposal can only be executed if it is in grace period');
         });
 
-
-
         it('cannot cancel expired, failed or executed proposals', async function () {
             await barn.setBondCirculatingSupply(amount);
             await barn.setVotingPower(userAddress, amount.div(5));
@@ -345,7 +349,6 @@ describe('Governance', function () {
             expect(await barn.withdrawHasBeenCalled()).to.be.true;
             await expect(governance.connect(governor).cancel(1)).to.be.revertedWith('Cannot cancel executed proposal');
         });
-
 
         it('change governor', async function () {
             await barn.setBondCirculatingSupply(amount);
@@ -419,15 +422,12 @@ describe('Governance', function () {
             expect(await governance.state(1)).to.be.equal(ProposalState.Canceled);
         });
 
-
         it('abdicate', async function () {
             await expect(governance.connect(user).abdicate()).to.be.revertedWith('Must be gov guardian');
             await governance.connect(governor).abdicate();
-            expect (await governance.guardian()).to.be.equal(helpers.ZERO_ADDRESS);
+            expect(await governance.guardian()).to.be.equal(helpers.ZERO_ADDRESS);
 
         });
-
-
     });
 
     async function setupSigners () {
@@ -439,6 +439,7 @@ describe('Governance', function () {
         voter3 = accounts[12];
         userAddress = await user.getAddress();
     }
+
     function fillArray (arr: Array<string>, len: number) {
         while (arr.length * 2 <= len) arr = arr.concat(arr);
         if (arr.length < len) arr = arr.concat(arr.slice(0, len - arr.length));

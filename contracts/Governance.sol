@@ -74,29 +74,25 @@ contract Governance is Bridge {
         // flag for proposal was executed
         bool executed;
         // Receipts of ballots for the entire set of voters
-        mapping (address => Receipt) receipts;
+        mapping(address => Receipt) receipts;
     }
 
     uint public lastProposalId;
-    mapping (uint => Proposal) public proposals;
-    mapping (address => uint) public latestProposalIds;
+    mapping(uint => Proposal) public proposals;
+    mapping(address => uint) public latestProposalIds;
     IBarn barn;
     address public guardian;
     bool isInitialized;
 
-
     // executed only once.
-    function initialize (address barnAddr, address guardianAddress) public {
-        require (isInitialized == false, 'Contract already initialized.');
+    function initialize(address barnAddr, address guardianAddress) public {
+        require(isInitialized == false, 'Contract already initialized.');
         barn = IBarn(barnAddr);
         guardian = guardianAddress;
         isInitialized = true;
     }
 
-
-
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description, string memory title) public returns (uint) {
-
         // requires for the user
         // check voting power
         require(barn.votingPowerAtTs(msg.sender, block.timestamp - 1) >= barn.bondCirculatingSupply() / 100, "User must own at least 1%");
@@ -131,18 +127,14 @@ contract Governance is Bridge {
         // lock user tokens
         barn.lockCreatorBalance(msg.sender, WARM_UP);
 
-        // emit here
-
         // @TODO Emit
 
-        // return result
         return newProposalId;
     }
 
-    function startVote (uint proposalId) public {
+    function startVote(uint proposalId) public {
         _startVote(proposalId);
     }
-
 
     function castVote(uint proposalId, bool support) public {
         if (state(proposalId) == ProposalState.ReadyForActivation) {
@@ -155,12 +147,10 @@ contract Governance is Bridge {
         return _cancelVote(msg.sender, proposalId);
     }
 
-
-
     function queue(uint proposalId) public {
         require(state(proposalId) == ProposalState.Accepted, "Proposal can only be queued if it is succeeded");
         Proposal storage proposal = proposals[proposalId];
-        require (proposal.canceled == false, "Cannot queue a canceled proposal");
+        require(proposal.canceled == false, "Cannot queue a canceled proposal");
 
         uint eta = proposal.startTime + ACTIVE + QUEUE;
 
@@ -189,19 +179,20 @@ contract Governance is Bridge {
         require(state != ProposalState.Expired, "Cannot cancel expired proposal");
 
         Proposal storage proposal = proposals[proposalId];
-        require (_canCancel(proposalId), "Only the proposal creator or guardian can cancel a proposal");
+        require(_canCancel(proposalId), "Only the proposal creator or guardian can cancel a proposal");
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
             cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
         // @TODO Emit
     }
-    function abdicate () external {
-        require (msg.sender == guardian, 'Must be gov guardian');
+
+    function abdicate() external {
+        require(msg.sender == guardian, 'Must be gov guardian');
         _abdicate();
     }
 
-    function anoint (address newGuardian) public {
+    function anoint(address newGuardian) public {
         require(msg.sender == address(this), 'Only the gov contract');
         _anoint(newGuardian);
     }
@@ -252,7 +243,6 @@ contract Governance is Bridge {
 
         // return expired for votes not executed in grace period
         return ProposalState.Expired;
-
     }
 
     function getReceipt(uint proposalId, address voter) public view returns (Receipt memory) {
@@ -266,16 +256,16 @@ contract Governance is Bridge {
 
     // internal
 
-    function _abdicate () internal {
+    function _abdicate() internal {
         guardian = address(0);
     }
 
     // callable only by a proposal
-    function _anoint (address newGuardian) internal {
+    function _anoint(address newGuardian) internal {
         guardian = newGuardian;
     }
 
-    function _startVote (uint proposalId) internal {
+    function _startVote(uint proposalId) internal {
         require(state(proposalId) == ProposalState.ReadyForActivation, 'Proposal needs to be in RedyForActivation state');
         Proposal storage proposal = proposals[proposalId];
         proposal.startTime = block.timestamp;
@@ -335,9 +325,8 @@ contract Governance is Bridge {
         return false;
     }
 
-
     // pure functions
-    function proposalMaxOperations() public pure returns (uint) { return 10; } // 10 actions
+    function proposalMaxOperations() public pure returns (uint) {return 10;} // 10 actions
 
     function add256(uint256 a, uint256 b) internal pure returns (uint) {
         uint c = a + b;
@@ -349,5 +338,4 @@ contract Governance is Bridge {
         require(b <= a, "subtraction underflow");
         return a - b;
     }
-
 }

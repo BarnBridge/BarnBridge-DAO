@@ -1,12 +1,7 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import { ethers } from 'hardhat';
-import { BigNumber, ContractFactory } from 'ethers';
+import { ContractFactory } from 'ethers';
 import { BarnMock, Governance } from '../typechain';
 
-export const stakingEpochStart = 1603065600;
-export const stakingEpochDuration = 604800;
-export const tenPow18 = BigNumber.from(10).pow(18);
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export async function deployBarn (): Promise<BarnMock> {
