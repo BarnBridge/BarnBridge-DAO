@@ -193,7 +193,7 @@ contract Governance is Bridge {
     }
 
     function anoint(address newGuardian) public {
-        require(msg.sender == address(this), 'Only the gov contract');
+        require(msg.sender == guardian, 'Only the gov guardian');
         _anoint(newGuardian);
     }
 
