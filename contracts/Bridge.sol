@@ -3,7 +3,7 @@ pragma solidity ^0.7.1;
 
 import "./Constants.sol";
 
-contract Bridge is Constants {
+abstract contract Bridge is Constants {
 
     mapping(bytes32 => bool) public queuedTransactions;
 
@@ -21,7 +21,7 @@ contract Bridge is Constants {
 
     function executeTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) internal returns (bytes memory) {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        require(getBlockTimestamp() >= eta, "executeTransaction: Transaction hasn't surpassed time lock.");
+        require(getBlockTimestamp() >= eta || isGuardian(), "executeTransaction: Transaction hasn't surpassed time lock.");
         require(getBlockTimestamp() <= eta + GRACE_PERIOD, "executeTransaction: Transaction is stale.");
 
         queuedTransactions[txHash] = false;
@@ -46,5 +46,7 @@ contract Bridge is Constants {
         // solium-disable-next-line security/no-block-members
         return block.timestamp;
     }
+
+    function isGuardian() internal view virtual returns (bool);
 
 }

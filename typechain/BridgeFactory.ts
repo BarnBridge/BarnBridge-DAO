@@ -2,29 +2,12 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { Signer } from "ethers";
-import { Provider, TransactionRequest } from "@ethersproject/providers";
-import { Contract, ContractFactory, Overrides } from "@ethersproject/contracts";
+import { Contract, Signer } from "ethers";
+import { Provider } from "@ethersproject/providers";
 
 import type { Bridge } from "./Bridge";
 
-export class BridgeFactory extends ContractFactory {
-  constructor(signer?: Signer) {
-    super(_abi, _bytecode, signer);
-  }
-
-  deploy(overrides?: Overrides): Promise<Bridge> {
-    return super.deploy(overrides || {}) as Promise<Bridge>;
-  }
-  getDeployTransaction(overrides?: Overrides): TransactionRequest {
-    return super.getDeployTransaction(overrides || {});
-  }
-  attach(address: string): Bridge {
-    return super.attach(address) as Bridge;
-  }
-  connect(signer: Signer): BridgeFactory {
-    return super.connect(signer) as BridgeFactory;
-  }
+export class BridgeFactory {
   static connect(address: string, signerOrProvider: Signer | Provider): Bridge {
     return new Contract(address, _abi, signerOrProvider) as Bridge;
   }
@@ -129,6 +112,3 @@ const _abi = [
     type: "function",
   },
 ];
-
-const _bytecode =
-  "0x608060405234801561001057600080fd5b506101f6806100206000396000f3fe608060405234801561001057600080fd5b506004361061007d5760003560e01c8063b17ac1e11161005b578063b17ac1e1146100dc578063c1a287e2146100fa578063c90bd04714610118578063f2b06537146101365761007d565b80631a3d203d146100825780631e9d5fad146100a0578063b159beac146100be575b600080fd5b61008a61017a565b6040518082815260200191505060405180910390f35b6100a8610181565b6040518082815260200191505060405180910390f35b6100c6610188565b6040518082815260200191505060405180910390f35b6100e461018d565b6040518082815260200191505060405180910390f35b610102610192565b6040518082815260200191505060405180910390f35b610120610199565b6040518082815260200191505060405180910390f35b6101626004803603602081101561014c57600080fd5b81019080803590602001909291905050506101a0565b60405180821515815260200191505060405180910390f35b6202a30081565b6202a30081565b600a81565b603c81565b6202a30081565b6202a30081565b60006020528060005260406000206000915054906101000a900460ff168156fea26469706673582212207ecb89e81e93609fd8035faa5a976f3ff2c464160c08eea85ce6d75747cf080164736f6c63430007030033";
