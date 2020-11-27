@@ -3,6 +3,7 @@ import { BigNumber, ethers as ejs, Signer } from 'ethers';
 import * as helpers from './helpers';
 import { expect } from 'chai';
 import { BarnMock, Governance } from '../typechain';
+import {moveAtTimestamp} from "./helpers";
 
 describe('Governance', function () {
 
@@ -137,10 +138,7 @@ describe('Governance', function () {
             expect(await governance.state(1)).to.be.equal(ProposalState.Active);
             const proposal = await governance.proposals(1);
             expect(proposal.startTime).to.be.equal(blockObject.timestamp);
-            expect(proposal.quorum).to.be.equal(amount.mul(10).div(100));
-
-            // expect(await governance.proposals(1)).to.be.equal(1);
-
+            expect(proposal.quorum).to.be.equal(amount.mul(30).div(100));
         });
 
         it('cast, cancel and change vote', async function () {
@@ -372,6 +370,54 @@ describe('Governance', function () {
 
             await governance.connect(governor).cancel(1);
             expect(await governance.state(1)).to.be.equal(ProposalState.Canceled);
+        });
+
+        it('test change periods', async function () {
+            await expect(governance.setActivePeriod(1)).to.be.revertedWith('Only DAO can call');
+            await barn.setBondCirculatingSupply(amount);
+            await barn.setVotingPower(userAddress, amount.div(2));
+            await barn.setVotingPower(await voter1.getAddress(), amount.div(20));
+            await barn.setVotingPower(await voter2.getAddress(), amount.div(5));
+            await barn.setVotingPower(await voter3.getAddress(), amount.div(5));
+            const targets = [governance.address, governance.address, governance.address, governance.address];
+            const values = [0, 0, 0, 0];
+            const signatures = ['setWarmUpPeriod(uint256)',
+                'setActivePeriod(uint256)',
+                'setQueuePeriod(uint256)',
+                'setGracePeriod(uint256)',
+            ];
+
+            const period = (await governance.GRACE_PERIOD()).toNumber() / 2;
+            const callDatas = [
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+            ];
+
+
+            await governance.connect(user)
+                .propose(targets, values, signatures, callDatas, 'Change Periods', 'Periods');
+            const WARM_UP_PERIOD = (await governance.WARM_UP()).toNumber();
+            const block = await helpers.getLatestBlock();
+            const ts = parseInt(block.timestamp);
+            await moveAtTimestamp(ts + WARM_UP_PERIOD + 1);
+            await governance.startVote(1);
+            let proposal = await governance.proposals(1);
+            await governance.connect(user).castVote(1, true);
+            await moveAtTimestamp(proposal.startTime.toNumber() + WARM_UP_PERIOD + 1);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Accepted);
+            await governance.queue(1);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Queued);
+            proposal = await governance.proposals(1);
+            await moveAtTimestamp(proposal.eta.toNumber() + 1);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Grace);
+            await governance.execute(1);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Executed);
+            expect(await governance.WARM_UP()).to.be.equal(period);
+            expect(await governance.ACTIVE()).to.be.equal(period);
+            expect(await governance.QUEUE()).to.be.equal(period);
+            expect(await governance.GRACE_PERIOD()).to.be.equal(period);
         });
 
         it('proposer cancel proposal', async function () {

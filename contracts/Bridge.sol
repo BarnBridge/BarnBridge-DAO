@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.7.1;
 
-import "./Constants.sol";
+import "./TimePeriod.sol";
 
-contract Bridge is Constants {
+contract Bridge is TimePeriod {
 
     mapping(bytes32 => bool) public queuedTransactions;
 
