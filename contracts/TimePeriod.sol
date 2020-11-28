@@ -31,5 +31,14 @@ abstract contract TimePeriod {
     function setGracePeriod (uint period) public onlyDAO {
         GRACE_PERIOD = period;
     }
+    function setMinimumThreshold (uint threshold) public onlyDAO {
+        require(threshold < 100,  'Maximum is 100.');
+        require(threshold > 50,  'Minimum is 50.');
+        MINIMUM_FOR_VOTES_THRESHOLD = threshold;
+    }
+    function setMinimumQuorum (uint quorum) public onlyDAO {
+        require(quorum < 100, 'Maximum is 100.');
+        MINIMUM_QUORUM = quorum;
+    }
 
 }

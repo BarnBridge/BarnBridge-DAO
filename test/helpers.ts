@@ -2,6 +2,19 @@ import { ethers } from 'hardhat';
 import { ContractFactory } from 'ethers';
 import { BarnMock, Governance } from '../typechain';
 
+enum ProposalState {
+    WarmUp,
+    ReadyForActivation,
+    Active,
+    Canceled,
+    Failed,
+    Accepted,
+    Queued,
+    Grace,
+    Expired,
+    Executed
+}
+
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export async function deployBarn (): Promise<BarnMock> {
@@ -36,3 +49,7 @@ export async function moveAtTimestamp (timestamp: number): Promise<void> {
     await ethers.provider.send('evm_mine', []);
 }
 
+export async function getCurrentBlockchainTimestamp (): Promise<number> {
+    const block = await getLatestBlock();
+    return parseInt(block.timestamp);
+}

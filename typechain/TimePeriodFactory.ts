@@ -125,6 +125,32 @@ const _abi = [
     inputs: [
       {
         internalType: "uint256",
+        name: "quorum",
+        type: "uint256",
+      },
+    ],
+    name: "setMinimumQuorum",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "threshold",
+        type: "uint256",
+      },
+    ],
+    name: "setMinimumThreshold",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
         name: "period",
         type: "uint256",
       },

@@ -35,7 +35,7 @@ contract Bridge is TimePeriod {
         }
         // solium-disable-next-line security/no-call-value
         (bool success, bytes memory returnData) = target.call{value : value}(callData);
-        require(success, "Transaction execution reverted.");
+        require(success, string(returnData));
 
         //        emit ExecuteTransaction(txHash, target, value, signature, data, eta);
 

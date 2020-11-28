@@ -48,6 +48,8 @@ interface GovernanceInterface extends ethers.utils.Interface {
     "queuedTransactions(bytes32)": FunctionFragment;
     "setActivePeriod(uint256)": FunctionFragment;
     "setGracePeriod(uint256)": FunctionFragment;
+    "setMinimumQuorum(uint256)": FunctionFragment;
+    "setMinimumThreshold(uint256)": FunctionFragment;
     "setQueuePeriod(uint256)": FunctionFragment;
     "setWarmUpPeriod(uint256)": FunctionFragment;
     "startVote(uint256)": FunctionFragment;
@@ -134,6 +136,14 @@ interface GovernanceInterface extends ethers.utils.Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "setMinimumQuorum",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setMinimumThreshold",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setQueuePeriod",
     values: [BigNumberish]
   ): string;
@@ -197,6 +207,14 @@ interface GovernanceInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setGracePeriod",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setMinimumQuorum",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setMinimumThreshold",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -599,6 +617,26 @@ export class Governance extends Contract {
       overrides?: Overrides
     ): Promise<ContractTransaction>;
 
+    setMinimumQuorum(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "setMinimumQuorum(uint256)"(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    setMinimumThreshold(
+      threshold: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "setMinimumThreshold(uint256)"(
+      threshold: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
     setQueuePeriod(
       period: BigNumberish,
       overrides?: Overrides
@@ -934,6 +972,26 @@ export class Governance extends Contract {
     overrides?: Overrides
   ): Promise<ContractTransaction>;
 
+  setMinimumQuorum(
+    quorum: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "setMinimumQuorum(uint256)"(
+    quorum: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  setMinimumThreshold(
+    threshold: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "setMinimumThreshold(uint256)"(
+    threshold: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
   setQueuePeriod(
     period: BigNumberish,
     overrides?: Overrides
@@ -1250,6 +1308,26 @@ export class Governance extends Contract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setMinimumQuorum(
+      quorum: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "setMinimumQuorum(uint256)"(
+      quorum: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setMinimumThreshold(
+      threshold: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "setMinimumThreshold(uint256)"(
+      threshold: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     setQueuePeriod(
       period: BigNumberish,
       overrides?: CallOverrides
@@ -1487,6 +1565,26 @@ export class Governance extends Contract {
 
     "setGracePeriod(uint256)"(
       period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    setMinimumQuorum(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    "setMinimumQuorum(uint256)"(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    setMinimumThreshold(
+      threshold: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    "setMinimumThreshold(uint256)"(
+      threshold: BigNumberish,
       overrides?: Overrides
     ): Promise<BigNumber>;
 
@@ -1747,6 +1845,26 @@ export class Governance extends Contract {
 
     "setGracePeriod(uint256)"(
       period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    setMinimumQuorum(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "setMinimumQuorum(uint256)"(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    setMinimumThreshold(
+      threshold: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "setMinimumThreshold(uint256)"(
+      threshold: BigNumberish,
       overrides?: Overrides
     ): Promise<PopulatedTransaction>;
 

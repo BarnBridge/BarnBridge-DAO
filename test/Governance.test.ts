@@ -372,19 +372,84 @@ describe('Governance', function () {
             expect(await governance.state(1)).to.be.equal(ProposalState.Canceled);
         });
 
+        it ('fail for invalid quorum', async function () {
+            await barn.setBondCirculatingSupply(amount);
+            await barn.setVotingPower(userAddress, amount.div(2));
+            const targets = [governance.address];
+            const signatures = ['setMinimumQuorum(uint256)'];
+            const values = [0];
+            const callDatas = [ejs.utils.defaultAbiCoder.encode(['uint256'], [101])];
+            await governance.connect(user)
+                .propose(targets, values, signatures, callDatas, 'Change Quorum', 'Quorum');
+            const WARM_UP_PERIOD = (await governance.WARM_UP()).toNumber();
+            await moveAtTimestamp(await helpers.getCurrentBlockchainTimestamp() + WARM_UP_PERIOD + 1);
+            await governance.startVote(1);
+            await governance.connect(user).castVote(1, true);
+            let voteProposal = await governance.proposals(1);
+            const ACTIVE = (await governance.ACTIVE()).toNumber();
+            await moveAtTimestamp(ACTIVE + (voteProposal.startTime).toNumber() + 1);
+            await governance.queue(1);
+            voteProposal = await governance.proposals(1);
+            await moveAtTimestamp(voteProposal.eta.toNumber() + 1);
+            await expect(governance.execute(1)).to.be.revertedWith('Maximum is 100.');
+        });
+
+        it ('fail for invalid minimum threshold', async function () {
+            await barn.setBondCirculatingSupply(amount);
+            await barn.setVotingPower(userAddress, amount.div(2));
+            await barn.setVotingPower(await voter1.getAddress(), amount.div(2));
+            const targets = [governance.address];
+            const signatures = ['setMinimumThreshold(uint256)'];
+            const values = [0];
+            const callDatasBig = [ejs.utils.defaultAbiCoder.encode(['uint256'], [101])];
+            const callDatasLow = [ejs.utils.defaultAbiCoder.encode(['uint256'], [49])];
+            await governance.connect(user)
+                .propose(targets, values, signatures, callDatasBig, 'Change Threshold Big', 'Threshold');
+            await governance.connect(voter1)
+                .propose(targets, values, signatures, callDatasLow, 'Change Threshold Low', 'Threshold');
+            const WARM_UP_PERIOD = (await governance.WARM_UP()).toNumber();
+            await moveAtTimestamp(await helpers.getCurrentBlockchainTimestamp() + WARM_UP_PERIOD + 1);
+            await governance.startVote(1);
+            await governance.startVote(2);
+            await governance.connect(user).castVote(1, true);
+            await governance.connect(user).castVote(2, true);
+            let voteProposalBig = await governance.proposals(1);
+            let ACTIVE = (await governance.ACTIVE()).toNumber();
+            await moveAtTimestamp(ACTIVE + (voteProposalBig.startTime).toNumber() + 1);
+            await governance.queue(1);
+            voteProposalBig = await governance.proposals(1);
+            await moveAtTimestamp(voteProposalBig.eta.toNumber() + 1);
+            await expect(governance.execute(1)).to.be.revertedWith('Maximum is 100.');
+
+
+            let voteProposalLow = await governance.proposals(2);
+            ACTIVE = (await governance.ACTIVE()).toNumber();
+            await moveAtTimestamp(ACTIVE + (voteProposalLow.startTime).toNumber() + 1);
+            await governance.queue(2);
+            voteProposalLow = await governance.proposals(2);
+            await moveAtTimestamp(voteProposalLow.eta.toNumber() + 1);
+            await expect(governance.execute(2)).to.be.revertedWith('Minimum is 50.');
+        });
+
         it('test change periods', async function () {
             await expect(governance.setActivePeriod(1)).to.be.revertedWith('Only DAO can call');
             await barn.setBondCirculatingSupply(amount);
             await barn.setVotingPower(userAddress, amount.div(2));
-            await barn.setVotingPower(await voter1.getAddress(), amount.div(20));
-            await barn.setVotingPower(await voter2.getAddress(), amount.div(5));
-            await barn.setVotingPower(await voter3.getAddress(), amount.div(5));
-            const targets = [governance.address, governance.address, governance.address, governance.address];
-            const values = [0, 0, 0, 0];
+            const targets = [
+                governance.address,
+                governance.address,
+                governance.address,
+                governance.address,
+                governance.address,
+                governance.address,
+            ];
+            const values = [0, 0, 0, 0, 0, 0];
             const signatures = ['setWarmUpPeriod(uint256)',
                 'setActivePeriod(uint256)',
                 'setQueuePeriod(uint256)',
                 'setGracePeriod(uint256)',
+                'setMinimumThreshold(uint256)',
+                'setMinimumQuorum(uint256)',
             ];
 
             const period = (await governance.GRACE_PERIOD()).toNumber() / 2;
@@ -393,6 +458,8 @@ describe('Governance', function () {
                 ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
                 ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
                 ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [51]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [51]),
             ];
 
 
@@ -418,6 +485,8 @@ describe('Governance', function () {
             expect(await governance.ACTIVE()).to.be.equal(period);
             expect(await governance.QUEUE()).to.be.equal(period);
             expect(await governance.GRACE_PERIOD()).to.be.equal(period);
+            expect(await governance.MINIMUM_FOR_VOTES_THRESHOLD()).to.be.equal(51);
+            expect(await governance.MINIMUM_QUORUM()).to.be.equal(51);
         });
 
         it('proposer cancel proposal', async function () {
