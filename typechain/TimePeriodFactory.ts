@@ -5,14 +5,14 @@
 import { Contract, Signer } from "ethers";
 import { Provider } from "@ethersproject/providers";
 
-import type { Constants } from "./Constants";
+import type { TimePeriod } from "./TimePeriod";
 
-export class ConstantsFactory {
+export class TimePeriodFactory {
   static connect(
     address: string,
     signerOrProvider: Signer | Provider
-  ): Constants {
-    return new Contract(address, _abi, signerOrProvider) as Constants;
+  ): TimePeriod {
+    return new Contract(address, _abi, signerOrProvider) as TimePeriod;
   }
 }
 
@@ -93,6 +93,84 @@ const _abi = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "period",
+        type: "uint256",
+      },
+    ],
+    name: "setActivePeriod",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "period",
+        type: "uint256",
+      },
+    ],
+    name: "setGracePeriod",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "quorum",
+        type: "uint256",
+      },
+    ],
+    name: "setMinimumQuorum",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "threshold",
+        type: "uint256",
+      },
+    ],
+    name: "setMinimumThreshold",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "period",
+        type: "uint256",
+      },
+    ],
+    name: "setQueuePeriod",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "period",
+        type: "uint256",
+      },
+    ],
+    name: "setWarmUpPeriod",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
 ];

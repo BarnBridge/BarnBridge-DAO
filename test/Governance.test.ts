@@ -3,6 +3,7 @@ import { BigNumber, ethers as ejs, Signer } from 'ethers';
 import * as helpers from './helpers';
 import { expect } from 'chai';
 import { BarnMock, Governance } from '../typechain';
+import { moveAtTimestamp } from './helpers';
 
 describe('Governance', function () {
 
@@ -137,10 +138,7 @@ describe('Governance', function () {
             expect(await governance.state(1)).to.be.equal(ProposalState.Active);
             const proposal = await governance.proposals(1);
             expect(proposal.startTime).to.be.equal(blockObject.timestamp);
-            expect(proposal.quorum).to.be.equal(amount.mul(10).div(100));
-
-            // expect(await governance.proposals(1)).to.be.equal(1);
-
+            expect(proposal.quorum).to.be.equal(amount.mul(30).div(100));
         });
 
         it('cast, cancel and change vote', async function () {
@@ -224,7 +222,6 @@ describe('Governance', function () {
             const values = [0];
             const signatures = ['withdraw(uint256)'];
             const callDatas = [ejs.utils.defaultAbiCoder.encode(['uint256'], [1])];
-            // ejs.utils.defaultAbiCoder.
             await governance.connect(user)
                 .propose(targets, values, signatures, callDatas, 'description', 'title');
             expect(await governance.lastProposalId()).to.be.equal(1);
@@ -411,6 +408,123 @@ describe('Governance', function () {
 
             await governance.connect(governor).cancel(1);
             expect(await governance.state(1)).to.be.equal(ProposalState.Canceled);
+        });
+
+        it ('fail for invalid quorum', async function () {
+            await barn.setBondCirculatingSupply(amount);
+            await barn.setVotingPower(userAddress, amount.div(2));
+            const targets = [governance.address];
+            const signatures = ['setMinimumQuorum(uint256)'];
+            const values = [0];
+            const callDatas = [ejs.utils.defaultAbiCoder.encode(['uint256'], [101])];
+            await governance.connect(user)
+                .propose(targets, values, signatures, callDatas, 'Change Quorum', 'Quorum');
+            const WARM_UP_PERIOD = (await governance.WARM_UP()).toNumber();
+            await moveAtTimestamp(await helpers.getCurrentBlockchainTimestamp() + WARM_UP_PERIOD + 1);
+            await governance.startVote(1);
+            await governance.connect(user).castVote(1, true);
+            let voteProposal = await governance.proposals(1);
+            const ACTIVE = (await governance.ACTIVE()).toNumber();
+            await moveAtTimestamp(ACTIVE + (voteProposal.startTime).toNumber() + 1);
+            await governance.queue(1);
+            voteProposal = await governance.proposals(1);
+            await moveAtTimestamp(voteProposal.eta.toNumber() + 1);
+            await expect(governance.execute(1)).to.be.revertedWith('Maximum is 100.');
+        });
+
+        it ('fail for invalid minimum threshold', async function () {
+            await barn.setBondCirculatingSupply(amount);
+            await barn.setVotingPower(userAddress, amount.div(2));
+            await barn.setVotingPower(await voter1.getAddress(), amount.div(2));
+            const targets = [governance.address];
+            const signatures = ['setMinimumThreshold(uint256)'];
+            const values = [0];
+            const callDatasBig = [ejs.utils.defaultAbiCoder.encode(['uint256'], [101])];
+            const callDatasLow = [ejs.utils.defaultAbiCoder.encode(['uint256'], [49])];
+            await governance.connect(user)
+                .propose(targets, values, signatures, callDatasBig, 'Change Threshold Big', 'Threshold');
+            await governance.connect(voter1)
+                .propose(targets, values, signatures, callDatasLow, 'Change Threshold Low', 'Threshold');
+            const WARM_UP_PERIOD = (await governance.WARM_UP()).toNumber();
+            await moveAtTimestamp(await helpers.getCurrentBlockchainTimestamp() + WARM_UP_PERIOD + 1);
+            await governance.startVote(1);
+            await governance.startVote(2);
+            await governance.connect(user).castVote(1, true);
+            await governance.connect(user).castVote(2, true);
+            let voteProposalBig = await governance.proposals(1);
+            let ACTIVE = (await governance.ACTIVE()).toNumber();
+            await moveAtTimestamp(ACTIVE + (voteProposalBig.startTime).toNumber() + 1);
+            await governance.queue(1);
+            voteProposalBig = await governance.proposals(1);
+            await moveAtTimestamp(voteProposalBig.eta.toNumber() + 1);
+            await expect(governance.execute(1)).to.be.revertedWith('Maximum is 100.');
+
+
+            let voteProposalLow = await governance.proposals(2);
+            ACTIVE = (await governance.ACTIVE()).toNumber();
+            await moveAtTimestamp(ACTIVE + (voteProposalLow.startTime).toNumber() + 1);
+            await governance.queue(2);
+            voteProposalLow = await governance.proposals(2);
+            await moveAtTimestamp(voteProposalLow.eta.toNumber() + 1);
+            await expect(governance.execute(2)).to.be.revertedWith('Minimum is 50.');
+        });
+
+        it('test change periods', async function () {
+            await expect(governance.setActivePeriod(1)).to.be.revertedWith('Only DAO can call');
+            await barn.setBondCirculatingSupply(amount);
+            await barn.setVotingPower(userAddress, amount.div(2));
+            const targets = [
+                governance.address,
+                governance.address,
+                governance.address,
+                governance.address,
+                governance.address,
+                governance.address,
+            ];
+            const values = [0, 0, 0, 0, 0, 0];
+            const signatures = ['setWarmUpPeriod(uint256)',
+                'setActivePeriod(uint256)',
+                'setQueuePeriod(uint256)',
+                'setGracePeriod(uint256)',
+                'setMinimumThreshold(uint256)',
+                'setMinimumQuorum(uint256)',
+            ];
+
+            const period = (await governance.GRACE_PERIOD()).toNumber() / 2;
+            const callDatas = [
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [51]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [51]),
+            ];
+
+
+            await governance.connect(user)
+                .propose(targets, values, signatures, callDatas, 'Change Periods', 'Periods');
+            const WARM_UP_PERIOD = (await governance.WARM_UP()).toNumber();
+            const block = await helpers.getLatestBlock();
+            const ts = parseInt(block.timestamp);
+            await moveAtTimestamp(ts + WARM_UP_PERIOD + 1);
+            await governance.startVote(1);
+            let proposal = await governance.proposals(1);
+            await governance.connect(user).castVote(1, true);
+            await moveAtTimestamp(proposal.startTime.toNumber() + WARM_UP_PERIOD + 1);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Accepted);
+            await governance.queue(1);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Queued);
+            proposal = await governance.proposals(1);
+            await moveAtTimestamp(proposal.eta.toNumber() + 1);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Grace);
+            await governance.execute(1);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Executed);
+            expect(await governance.WARM_UP()).to.be.equal(period);
+            expect(await governance.ACTIVE()).to.be.equal(period);
+            expect(await governance.QUEUE()).to.be.equal(period);
+            expect(await governance.GRACE_PERIOD()).to.be.equal(period);
+            expect(await governance.MINIMUM_FOR_VOTES_THRESHOLD()).to.be.equal(51);
+            expect(await governance.MINIMUM_QUORUM()).to.be.equal(51);
         });
 
         it('proposer cancel proposal', async function () {

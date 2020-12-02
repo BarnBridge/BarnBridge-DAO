@@ -111,4 +111,82 @@ const _abi = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "period",
+        type: "uint256",
+      },
+    ],
+    name: "setActivePeriod",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "period",
+        type: "uint256",
+      },
+    ],
+    name: "setGracePeriod",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "quorum",
+        type: "uint256",
+      },
+    ],
+    name: "setMinimumQuorum",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "threshold",
+        type: "uint256",
+      },
+    ],
+    name: "setMinimumThreshold",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "period",
+        type: "uint256",
+      },
+    ],
+    name: "setQueuePeriod",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "period",
+        type: "uint256",
+      },
+    ],
+    name: "setWarmUpPeriod",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 ];

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.7.1;
 
-import "./Constants.sol";
+import "./TimePeriod.sol";
 
-abstract contract Bridge is Constants {
+abstract contract Bridge is TimePeriod {
 
     mapping(bytes32 => bool) public queuedTransactions;
 
@@ -35,7 +35,7 @@ abstract contract Bridge is Constants {
         }
         // solium-disable-next-line security/no-call-value
         (bool success, bytes memory returnData) = target.call{value : value}(callData);
-        require(success, "Transaction execution reverted.");
+        require(success, string(returnData));
 
         //        emit ExecuteTransaction(txHash, target, value, signature, data, eta);
 

@@ -20,7 +20,7 @@ import { BytesLike } from "@ethersproject/bytes";
 import { Listener, Provider } from "@ethersproject/providers";
 import { FunctionFragment, EventFragment, Result } from "@ethersproject/abi";
 
-interface BridgeInterface extends ethers.utils.Interface {
+interface TimePeriodInterface extends ethers.utils.Interface {
   functions: {
     "ACTIVE()": FunctionFragment;
     "GRACE_PERIOD()": FunctionFragment;
@@ -28,7 +28,6 @@ interface BridgeInterface extends ethers.utils.Interface {
     "MINIMUM_QUORUM()": FunctionFragment;
     "QUEUE()": FunctionFragment;
     "WARM_UP()": FunctionFragment;
-    "queuedTransactions(bytes32)": FunctionFragment;
     "setActivePeriod(uint256)": FunctionFragment;
     "setGracePeriod(uint256)": FunctionFragment;
     "setMinimumQuorum(uint256)": FunctionFragment;
@@ -52,10 +51,6 @@ interface BridgeInterface extends ethers.utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "QUEUE", values?: undefined): string;
   encodeFunctionData(functionFragment: "WARM_UP", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "queuedTransactions",
-    values: [BytesLike]
-  ): string;
   encodeFunctionData(
     functionFragment: "setActivePeriod",
     values: [BigNumberish]
@@ -97,10 +92,6 @@ interface BridgeInterface extends ethers.utils.Interface {
   decodeFunctionResult(functionFragment: "QUEUE", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "WARM_UP", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "queuedTransactions",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "setActivePeriod",
     data: BytesLike
   ): Result;
@@ -128,7 +119,7 @@ interface BridgeInterface extends ethers.utils.Interface {
   events: {};
 }
 
-export class Bridge extends Contract {
+export class TimePeriod extends Contract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
@@ -139,7 +130,7 @@ export class Bridge extends Contract {
   removeAllListeners(eventName: EventFilter | string): this;
   removeListener(eventName: any, listener: Listener): this;
 
-  interface: BridgeInterface;
+  interface: TimePeriodInterface;
 
   functions: {
     ACTIVE(
@@ -212,20 +203,6 @@ export class Bridge extends Contract {
       overrides?: CallOverrides
     ): Promise<{
       0: BigNumber;
-    }>;
-
-    queuedTransactions(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<{
-      0: boolean;
-    }>;
-
-    "queuedTransactions(bytes32)"(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<{
-      0: boolean;
     }>;
 
     setActivePeriod(
@@ -315,16 +292,6 @@ export class Bridge extends Contract {
 
   "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
 
-  queuedTransactions(
-    arg0: BytesLike,
-    overrides?: CallOverrides
-  ): Promise<boolean>;
-
-  "queuedTransactions(bytes32)"(
-    arg0: BytesLike,
-    overrides?: CallOverrides
-  ): Promise<boolean>;
-
   setActivePeriod(
     period: BigNumberish,
     overrides?: Overrides
@@ -411,16 +378,6 @@ export class Bridge extends Contract {
     WARM_UP(overrides?: CallOverrides): Promise<BigNumber>;
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
-
-    queuedTransactions(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<boolean>;
-
-    "queuedTransactions(bytes32)"(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<boolean>;
 
     setActivePeriod(
       period: BigNumberish,
@@ -511,16 +468,6 @@ export class Bridge extends Contract {
     WARM_UP(overrides?: CallOverrides): Promise<BigNumber>;
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
-
-    queuedTransactions(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    "queuedTransactions(bytes32)"(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     setActivePeriod(
       period: BigNumberish,
@@ -613,16 +560,6 @@ export class Bridge extends Contract {
     WARM_UP(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    queuedTransactions(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    "queuedTransactions(bytes32)"(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
 
     setActivePeriod(
       period: BigNumberish,

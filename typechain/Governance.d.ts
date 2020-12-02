@@ -46,6 +46,12 @@ interface GovernanceInterface extends ethers.utils.Interface {
     "propose(address[],uint256[],string[],bytes[],string,string)": FunctionFragment;
     "queue(uint256)": FunctionFragment;
     "queuedTransactions(bytes32)": FunctionFragment;
+    "setActivePeriod(uint256)": FunctionFragment;
+    "setGracePeriod(uint256)": FunctionFragment;
+    "setMinimumQuorum(uint256)": FunctionFragment;
+    "setMinimumThreshold(uint256)": FunctionFragment;
+    "setQueuePeriod(uint256)": FunctionFragment;
+    "setWarmUpPeriod(uint256)": FunctionFragment;
     "startVote(uint256)": FunctionFragment;
     "state(uint256)": FunctionFragment;
   };
@@ -122,6 +128,30 @@ interface GovernanceInterface extends ethers.utils.Interface {
     values: [BytesLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "setActivePeriod",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setGracePeriod",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setMinimumQuorum",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setMinimumThreshold",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setQueuePeriod",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setWarmUpPeriod",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "startVote",
     values: [BigNumberish]
   ): string;
@@ -169,6 +199,30 @@ interface GovernanceInterface extends ethers.utils.Interface {
   decodeFunctionResult(functionFragment: "queue", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "queuedTransactions",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setActivePeriod",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setGracePeriod",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setMinimumQuorum",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setMinimumThreshold",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setQueuePeriod",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setWarmUpPeriod",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "startVote", data: BytesLike): Result;
@@ -543,6 +597,66 @@ export class Governance extends Contract {
       0: boolean;
     }>;
 
+    setActivePeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "setActivePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    setGracePeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "setGracePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    setMinimumQuorum(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "setMinimumQuorum(uint256)"(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    setMinimumThreshold(
+      threshold: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "setMinimumThreshold(uint256)"(
+      threshold: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    setQueuePeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "setQueuePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    setWarmUpPeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
+    "setWarmUpPeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<ContractTransaction>;
+
     startVote(
       proposalId: BigNumberish,
       overrides?: Overrides
@@ -838,6 +952,66 @@ export class Governance extends Contract {
     overrides?: CallOverrides
   ): Promise<boolean>;
 
+  setActivePeriod(
+    period: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "setActivePeriod(uint256)"(
+    period: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  setGracePeriod(
+    period: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "setGracePeriod(uint256)"(
+    period: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  setMinimumQuorum(
+    quorum: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "setMinimumQuorum(uint256)"(
+    quorum: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  setMinimumThreshold(
+    threshold: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "setMinimumThreshold(uint256)"(
+    threshold: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  setQueuePeriod(
+    period: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "setQueuePeriod(uint256)"(
+    period: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  setWarmUpPeriod(
+    period: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
+  "setWarmUpPeriod(uint256)"(
+    period: BigNumberish,
+    overrides?: Overrides
+  ): Promise<ContractTransaction>;
+
   startVote(
     proposalId: BigNumberish,
     overrides?: Overrides
@@ -1114,6 +1288,66 @@ export class Governance extends Contract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
+    setActivePeriod(
+      period: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "setActivePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setGracePeriod(
+      period: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "setGracePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setMinimumQuorum(
+      quorum: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "setMinimumQuorum(uint256)"(
+      quorum: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setMinimumThreshold(
+      threshold: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "setMinimumThreshold(uint256)"(
+      threshold: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setQueuePeriod(
+      period: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "setQueuePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setWarmUpPeriod(
+      period: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "setWarmUpPeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     startVote(
       proposalId: BigNumberish,
       overrides?: CallOverrides
@@ -1312,6 +1546,66 @@ export class Governance extends Contract {
     "queuedTransactions(bytes32)"(
       arg0: BytesLike,
       overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    setActivePeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    "setActivePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    setGracePeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    "setGracePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    setMinimumQuorum(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    "setMinimumQuorum(uint256)"(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    setMinimumThreshold(
+      threshold: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    "setMinimumThreshold(uint256)"(
+      threshold: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    setQueuePeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    "setQueuePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    setWarmUpPeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<BigNumber>;
+
+    "setWarmUpPeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
     ): Promise<BigNumber>;
 
     startVote(
@@ -1532,6 +1826,66 @@ export class Governance extends Contract {
     "queuedTransactions(bytes32)"(
       arg0: BytesLike,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    setActivePeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "setActivePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    setGracePeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "setGracePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    setMinimumQuorum(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "setMinimumQuorum(uint256)"(
+      quorum: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    setMinimumThreshold(
+      threshold: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "setMinimumThreshold(uint256)"(
+      threshold: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    setQueuePeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "setQueuePeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    setWarmUpPeriod(
+      period: BigNumberish,
+      overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    "setWarmUpPeriod(uint256)"(
+      period: BigNumberish,
+      overrides?: Overrides
     ): Promise<PopulatedTransaction>;
 
     startVote(
