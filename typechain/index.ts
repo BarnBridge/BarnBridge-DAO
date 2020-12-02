@@ -3,8 +3,6 @@
 /* eslint-disable */
 export { Erc20Factory } from "./Erc20Factory";
 export type { Erc20 } from "./Erc20";
-export { BridgeFactory } from "./BridgeFactory";
-export type { Bridge } from "./Bridge";
 export { GovernanceFactory } from "./GovernanceFactory";
 export type { Governance } from "./Governance";
 export { BarnMockFactory } from "./BarnMockFactory";

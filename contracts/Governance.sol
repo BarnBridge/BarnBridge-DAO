@@ -163,7 +163,7 @@ contract Governance is Bridge {
     }
 
     function execute(uint proposalId) public payable {
-        require(state(proposalId) == ProposalState.Grace, "Proposal can only be executed if it is in grace period");
+        require(_canBeExecuted(proposalId), "Cannot be executed");
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -228,6 +228,11 @@ contract Governance is Bridge {
             return ProposalState.Accepted;
         }
 
+        // vote is executed --> can be forced by guardian
+        if (proposal.executed == true) {
+            return ProposalState.Executed;
+        }
+
         // vote sent to be executed
         if (block.timestamp < proposal.eta) {
             return ProposalState.Queued;
@@ -235,10 +240,6 @@ contract Governance is Bridge {
         // vote can be executed
         if (block.timestamp <= proposal.eta + GRACE_PERIOD && proposal.executed == false) {
             return ProposalState.Grace;
-        }
-        // vote is executed
-        if (proposal.executed == true) {
-            return ProposalState.Executed;
         }
 
         // return expired for votes not executed in grace period
@@ -325,6 +326,11 @@ contract Governance is Bridge {
         return false;
     }
 
+    function _canBeExecuted (uint proposalId) internal view returns (bool) {
+        return (msg.sender == guardian && state(proposalId) == ProposalState.Queued
+        || state(proposalId) == ProposalState.Grace);
+    }
+
     // pure functions
     function proposalMaxOperations() public pure returns (uint) {return 10;} // 10 actions
 
@@ -338,4 +344,9 @@ contract Governance is Bridge {
         require(b <= a, "subtraction underflow");
         return a - b;
     }
+
+    function isGuardian() internal view override returns (bool) {
+        return msg.sender == guardian;
+    }
+
 }
