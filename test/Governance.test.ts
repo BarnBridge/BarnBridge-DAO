@@ -224,6 +224,7 @@ describe('Governance', function () {
             const values = [0];
             const signatures = ['withdraw(uint256)'];
             const callDatas = [ejs.utils.defaultAbiCoder.encode(['uint256'], [1])];
+            // ejs.utils.defaultAbiCoder.
             await governance.connect(user)
                 .propose(targets, values, signatures, callDatas, 'description', 'title');
             expect(await governance.lastProposalId()).to.be.equal(1);
@@ -293,7 +294,45 @@ describe('Governance', function () {
             expect(await governance.latestProposalIds(userAddress)).to.be.equal(1);
             expect(await governance.state(1)).to.be.equal(ProposalState.WarmUp);
             await expect(governance.execute(1)).to.be
-                .revertedWith('Proposal can only be executed if it is in grace period');
+                .revertedWith('Cannot be executed');
+        });
+
+        it('test proposal execution in queued mode', async function () {
+            await barn.setBondCirculatingSupply(amount);
+            await barn.setVotingPower(userAddress, amount.div(5));
+            await barn.setVotingPower(await voter1.getAddress(), amount.div(20));
+            await barn.setVotingPower(await voter2.getAddress(), amount.div(5));
+            await barn.setVotingPower(await voter3.getAddress(), amount.div(5));
+            const targets = [barn.address];
+            const values = [0];
+            const signatures = ['withdraw(uint256)'];
+            const callDatas = [ejs.utils.defaultAbiCoder.encode(['uint256'], [1])];
+            await governance.connect(user)
+                .propose(targets, values, signatures, callDatas, 'description', 'title');
+            const WARM_UP_PERIOD = (await governance.WARM_UP()).toNumber();
+            const ACTIVE_PERIOD = (await governance.ACTIVE()).toNumber();
+            let block = await helpers.getLatestBlock();
+            let ts = parseInt(block.timestamp);
+            await helpers.moveAtTimestamp(ts + WARM_UP_PERIOD);
+            await governance.startVote(1);
+            await governance.connect(voter1)
+                .castVote(1, true);
+            block = await helpers.getLatestBlock();
+            ts = parseInt(block.timestamp);
+
+            await governance.connect(voter2)
+                .castVote(1, false);
+            await governance.connect(user)
+                .castVote(1, true);
+            await governance.connect(voter2).castVote(1, true);
+            await helpers.moveAtTimestamp(ts + ACTIVE_PERIOD);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Accepted);
+
+            await governance.queue(1);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Queued);
+            await expect(governance.execute(1)).to.be.revertedWith('Cannot be executed');
+            await governance.connect(governor).execute(1);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Executed);
         });
 
         it('cannot cancel expired, failed or executed proposals', async function () {
