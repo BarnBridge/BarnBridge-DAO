@@ -125,7 +125,7 @@ contract Governance is Bridge {
         latestProposalIds[msg.sender] = newProposalId;
 
         // lock user tokens
-        barn.lockCreatorBalance(msg.sender, WARM_UP);
+        barn.lockCreatorBalance(msg.sender, block.timestamp + WARM_UP);
 
         // @TODO Emit
 
@@ -282,9 +282,13 @@ contract Governance is Bridge {
 
         uint votes = barn.votingPowerAtTs(voter, proposal.startTime);
 
-        // reset votes if user changed his vote
+        // means it changed its vote
         if (receipt.hasVoted) {
-            _cancelVote(voter, proposalId);
+            if (receipt.support) {
+                proposal.forVotes = sub256(proposal.forVotes, receipt.votes);
+            } else {
+                proposal.againstVotes = sub256(proposal.againstVotes, receipt.votes);
+            }
         }
 
         if (support) {
