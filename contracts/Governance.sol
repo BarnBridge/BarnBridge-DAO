@@ -84,6 +84,9 @@ contract Governance is Bridge {
     address public guardian;
     bool isInitialized;
 
+    event ProposalCreated(uint indexed proposalId);
+    event VotingStarted(uint indexed proposalId);
+
     // executed only once.
     function initialize(address barnAddr, address guardianAddress) public {
         require(isInitialized == false, 'Contract already initialized.');
@@ -127,7 +130,7 @@ contract Governance is Bridge {
         // lock user tokens
         barn.lockCreatorBalance(msg.sender, WARM_UP);
 
-        // @TODO Emit
+        emit ProposalCreated(newProposalId);
 
         return newProposalId;
     }
@@ -271,6 +274,8 @@ contract Governance is Bridge {
         Proposal storage proposal = proposals[proposalId];
         proposal.startTime = block.timestamp;
         proposal.quorum = (barn.bondCirculatingSupply() * MINIMUM_QUORUM) / 100;
+
+        emit VotingStarted(proposalId);
     }
 
     function _castVote(address voter, uint proposalId, bool support) internal {
