@@ -125,7 +125,7 @@ contract Governance is Bridge {
         latestProposalIds[msg.sender] = newProposalId;
 
         // lock user tokens
-        barn.lockCreatorBalance(msg.sender, WARM_UP);
+        barn.lockCreatorBalance(msg.sender, block.timestamp + WARM_UP);
 
         // @TODO Emit
 
