@@ -228,7 +228,23 @@ interface GovernanceInterface extends ethers.utils.Interface {
   decodeFunctionResult(functionFragment: "startVote", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "state", data: BytesLike): Result;
 
-  events: {};
+  events: {
+    "ProposalCanceled(uint256)": EventFragment;
+    "ProposalCreated(uint256)": EventFragment;
+    "ProposalExecuted(uint256)": EventFragment;
+    "ProposalQueued(uint256)": EventFragment;
+    "Vote(uint256,address,bool)": EventFragment;
+    "VoteCanceled(uint256,address)": EventFragment;
+    "VotingStarted(uint256)": EventFragment;
+  };
+
+  getEvent(nameOrSignatureOrTopic: "ProposalCanceled"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "ProposalCreated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "ProposalExecuted"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "ProposalQueued"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Vote"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "VoteCanceled"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "VotingStarted"): EventFragment;
 }
 
 export class Governance extends Contract {
@@ -1366,7 +1382,28 @@ export class Governance extends Contract {
     ): Promise<number>;
   };
 
-  filters: {};
+  filters: {
+    ProposalCanceled(proposalId: BigNumberish | null): EventFilter;
+
+    ProposalCreated(proposalId: BigNumberish | null): EventFilter;
+
+    ProposalExecuted(proposalId: BigNumberish | null): EventFilter;
+
+    ProposalQueued(proposalId: BigNumberish | null): EventFilter;
+
+    Vote(
+      proposalId: BigNumberish | null,
+      user: string | null,
+      support: null
+    ): EventFilter;
+
+    VoteCanceled(
+      proposalId: BigNumberish | null,
+      user: string | null
+    ): EventFilter;
+
+    VotingStarted(proposalId: BigNumberish | null): EventFilter;
+  };
 
   estimateGas: {
     ACTIVE(overrides?: CallOverrides): Promise<BigNumber>;
