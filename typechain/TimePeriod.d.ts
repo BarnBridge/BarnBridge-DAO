@@ -28,6 +28,7 @@ interface TimePeriodInterface extends ethers.utils.Interface {
     "MINIMUM_QUORUM()": FunctionFragment;
     "QUEUE()": FunctionFragment;
     "WARM_UP()": FunctionFragment;
+    "c_0x8efbff40(bytes32)": FunctionFragment;
     "setActivePeriod(uint256)": FunctionFragment;
     "setGracePeriod(uint256)": FunctionFragment;
     "setMinimumQuorum(uint256)": FunctionFragment;
@@ -51,6 +52,10 @@ interface TimePeriodInterface extends ethers.utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "QUEUE", values?: undefined): string;
   encodeFunctionData(functionFragment: "WARM_UP", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "c_0x8efbff40",
+    values: [BytesLike]
+  ): string;
   encodeFunctionData(
     functionFragment: "setActivePeriod",
     values: [BigNumberish]
@@ -91,6 +96,10 @@ interface TimePeriodInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "QUEUE", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "WARM_UP", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "c_0x8efbff40",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "setActivePeriod",
     data: BytesLike
@@ -205,6 +214,20 @@ export class TimePeriod extends Contract {
       0: BigNumber;
     }>;
 
+    c_0x8efbff40(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: void;
+    }>;
+
+    "c_0x8efbff40(bytes32)"(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: void;
+    }>;
+
     setActivePeriod(
       period: BigNumberish,
       overrides?: Overrides
@@ -292,6 +315,16 @@ export class TimePeriod extends Contract {
 
   "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
 
+  c_0x8efbff40(
+    c__0x8efbff40: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<void>;
+
+  "c_0x8efbff40(bytes32)"(
+    c__0x8efbff40: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<void>;
+
   setActivePeriod(
     period: BigNumberish,
     overrides?: Overrides
@@ -378,6 +411,16 @@ export class TimePeriod extends Contract {
     WARM_UP(overrides?: CallOverrides): Promise<BigNumber>;
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    c_0x8efbff40(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "c_0x8efbff40(bytes32)"(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     setActivePeriod(
       period: BigNumberish,
@@ -468,6 +511,16 @@ export class TimePeriod extends Contract {
     WARM_UP(overrides?: CallOverrides): Promise<BigNumber>;
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    c_0x8efbff40(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "c_0x8efbff40(bytes32)"(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     setActivePeriod(
       period: BigNumberish,
@@ -560,6 +613,16 @@ export class TimePeriod extends Contract {
     WARM_UP(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    c_0x8efbff40(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "c_0x8efbff40(bytes32)"(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     setActivePeriod(
       period: BigNumberish,

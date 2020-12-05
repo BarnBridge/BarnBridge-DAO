@@ -31,6 +31,9 @@ interface GovernanceInterface extends ethers.utils.Interface {
     "WARM_UP()": FunctionFragment;
     "abdicate()": FunctionFragment;
     "anoint(address)": FunctionFragment;
+    "c_0x081fa67a(bytes32)": FunctionFragment;
+    "c_0x58043649(bytes32)": FunctionFragment;
+    "c_0x8efbff40(bytes32)": FunctionFragment;
     "cancel(uint256)": FunctionFragment;
     "cancelVote(uint256)": FunctionFragment;
     "castVote(uint256,bool)": FunctionFragment;
@@ -73,6 +76,18 @@ interface GovernanceInterface extends ethers.utils.Interface {
   encodeFunctionData(functionFragment: "WARM_UP", values?: undefined): string;
   encodeFunctionData(functionFragment: "abdicate", values?: undefined): string;
   encodeFunctionData(functionFragment: "anoint", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "c_0x081fa67a",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "c_0x58043649",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "c_0x8efbff40",
+    values: [BytesLike]
+  ): string;
   encodeFunctionData(
     functionFragment: "cancel",
     values: [BigNumberish]
@@ -174,6 +189,18 @@ interface GovernanceInterface extends ethers.utils.Interface {
   decodeFunctionResult(functionFragment: "WARM_UP", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "abdicate", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "anoint", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "c_0x081fa67a",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "c_0x58043649",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "c_0x8efbff40",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "cancel", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "cancelVote", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "castVote", data: BytesLike): Result;
@@ -330,6 +357,48 @@ export class Governance extends Contract {
       newGuardian: string,
       overrides?: Overrides
     ): Promise<ContractTransaction>;
+
+    c_0x081fa67a(
+      c__0x081fa67a: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: void;
+    }>;
+
+    "c_0x081fa67a(bytes32)"(
+      c__0x081fa67a: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: void;
+    }>;
+
+    c_0x58043649(
+      c__0x58043649: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: void;
+    }>;
+
+    "c_0x58043649(bytes32)"(
+      c__0x58043649: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: void;
+    }>;
+
+    c_0x8efbff40(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: void;
+    }>;
+
+    "c_0x8efbff40(bytes32)"(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: void;
+    }>;
 
     cancel(
       proposalId: BigNumberish,
@@ -722,6 +791,36 @@ export class Governance extends Contract {
     overrides?: Overrides
   ): Promise<ContractTransaction>;
 
+  c_0x081fa67a(
+    c__0x081fa67a: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<void>;
+
+  "c_0x081fa67a(bytes32)"(
+    c__0x081fa67a: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<void>;
+
+  c_0x58043649(
+    c__0x58043649: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<void>;
+
+  "c_0x58043649(bytes32)"(
+    c__0x58043649: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<void>;
+
+  c_0x8efbff40(
+    c__0x8efbff40: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<void>;
+
+  "c_0x8efbff40(bytes32)"(
+    c__0x8efbff40: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<void>;
+
   cancel(
     proposalId: BigNumberish,
     overrides?: Overrides
@@ -1067,6 +1166,36 @@ export class Governance extends Contract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    c_0x081fa67a(
+      c__0x081fa67a: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "c_0x081fa67a(bytes32)"(
+      c__0x081fa67a: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    c_0x58043649(
+      c__0x58043649: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "c_0x58043649(bytes32)"(
+      c__0x58043649: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    c_0x8efbff40(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "c_0x8efbff40(bytes32)"(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     cancel(proposalId: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     "cancel(uint256)"(
@@ -1406,6 +1535,36 @@ export class Governance extends Contract {
       overrides?: Overrides
     ): Promise<BigNumber>;
 
+    c_0x081fa67a(
+      c__0x081fa67a: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "c_0x081fa67a(bytes32)"(
+      c__0x081fa67a: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    c_0x58043649(
+      c__0x58043649: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "c_0x58043649(bytes32)"(
+      c__0x58043649: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    c_0x8efbff40(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "c_0x8efbff40(bytes32)"(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     cancel(proposalId: BigNumberish, overrides?: Overrides): Promise<BigNumber>;
 
     "cancel(uint256)"(
@@ -1672,6 +1831,36 @@ export class Governance extends Contract {
     "anoint(address)"(
       newGuardian: string,
       overrides?: Overrides
+    ): Promise<PopulatedTransaction>;
+
+    c_0x081fa67a(
+      c__0x081fa67a: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "c_0x081fa67a(bytes32)"(
+      c__0x081fa67a: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    c_0x58043649(
+      c__0x58043649: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "c_0x58043649(bytes32)"(
+      c__0x58043649: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    c_0x8efbff40(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "c_0x8efbff40(bytes32)"(
+      c__0x8efbff40: BytesLike,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     cancel(
