@@ -84,6 +84,14 @@ contract Governance is Bridge {
     address public guardian;
     bool isInitialized;
 
+    event ProposalCreated(uint indexed proposalId);
+    event VotingStarted(uint indexed proposalId);
+    event Vote(uint indexed proposalId, address indexed user, bool support);
+    event VoteCanceled(uint indexed proposalId, address indexed user);
+    event ProposalQueued(uint indexed proposalId);
+    event ProposalExecuted(uint indexed proposalId);
+    event ProposalCanceled(uint indexed proposalId);
+
     // executed only once.
     function initialize(address barnAddr, address guardianAddress) public {
         require(isInitialized == false, 'Contract already initialized.');
@@ -127,7 +135,7 @@ contract Governance is Bridge {
         // lock user tokens
         barn.lockCreatorBalance(msg.sender, block.timestamp + WARM_UP);
 
-        // @TODO Emit
+        emit ProposalCreated(newProposalId);
 
         return newProposalId;
     }
@@ -159,17 +167,20 @@ contract Governance is Bridge {
             queueTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
         }
         proposal.eta = eta;
-        // @TODO Emit
+
+        emit ProposalQueued(proposalId);
     }
 
     function execute(uint proposalId) public payable {
         require(_canBeExecuted(proposalId), "Cannot be executed");
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
+
         for (uint i = 0; i < proposal.targets.length; i++) {
             executeTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
-        // @TODO Emit
+
+        emit ProposalExecuted(proposalId);
     }
 
     function cancel(uint proposalId) public {
@@ -181,10 +192,12 @@ contract Governance is Bridge {
         Proposal storage proposal = proposals[proposalId];
         require(_canCancel(proposalId), "Only the proposal creator or guardian can cancel a proposal");
         proposal.canceled = true;
+
         for (uint i = 0; i < proposal.targets.length; i++) {
             cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
-        // @TODO Emit
+
+        emit ProposalCanceled(proposalId);
     }
 
     function abdicate() external {
@@ -271,6 +284,8 @@ contract Governance is Bridge {
         Proposal storage proposal = proposals[proposalId];
         proposal.startTime = block.timestamp;
         proposal.quorum = (barn.bondCirculatingSupply() * MINIMUM_QUORUM) / 100;
+
+        emit VotingStarted(proposalId);
     }
 
     function _castVote(address voter, uint proposalId, bool support) internal {
@@ -300,7 +315,8 @@ contract Governance is Bridge {
         receipt.hasVoted = true;
         receipt.votes = votes;
         receipt.support = support;
-        // @TODO Emit
+
+        emit Vote(proposalId, voter, support);
     }
 
     function _cancelVote(address voter, uint proposalId) internal {
@@ -319,6 +335,8 @@ contract Governance is Bridge {
         receipt.hasVoted = false;
         receipt.votes = 0;
         receipt.support = false;
+
+        emit VoteCanceled(proposalId, voter);
     }
 
     function _canCancel(uint proposalId) internal view returns (bool){
@@ -330,7 +348,7 @@ contract Governance is Bridge {
         return false;
     }
 
-    function _canBeExecuted (uint proposalId) internal view returns (bool) {
+    function _canBeExecuted(uint proposalId) internal view returns (bool) {
         return (msg.sender == guardian && state(proposalId) == ProposalState.Queued
         || state(proposalId) == ProposalState.Grace);
     }

@@ -28,8 +28,6 @@ interface BridgeInterface extends ethers.utils.Interface {
     "MINIMUM_QUORUM()": FunctionFragment;
     "QUEUE()": FunctionFragment;
     "WARM_UP()": FunctionFragment;
-    "c_0x081fa67a(bytes32)": FunctionFragment;
-    "c_0x8efbff40(bytes32)": FunctionFragment;
     "queuedTransactions(bytes32)": FunctionFragment;
     "setActivePeriod(uint256)": FunctionFragment;
     "setGracePeriod(uint256)": FunctionFragment;
@@ -54,14 +52,6 @@ interface BridgeInterface extends ethers.utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "QUEUE", values?: undefined): string;
   encodeFunctionData(functionFragment: "WARM_UP", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "c_0x081fa67a",
-    values: [BytesLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "c_0x8efbff40",
-    values: [BytesLike]
-  ): string;
   encodeFunctionData(
     functionFragment: "queuedTransactions",
     values: [BytesLike]
@@ -106,14 +96,6 @@ interface BridgeInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "QUEUE", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "WARM_UP", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "c_0x081fa67a",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "c_0x8efbff40",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "queuedTransactions",
     data: BytesLike
@@ -232,34 +214,6 @@ export class Bridge extends Contract {
       0: BigNumber;
     }>;
 
-    c_0x081fa67a(
-      c__0x081fa67a: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<{
-      0: void;
-    }>;
-
-    "c_0x081fa67a(bytes32)"(
-      c__0x081fa67a: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<{
-      0: void;
-    }>;
-
-    c_0x8efbff40(
-      c__0x8efbff40: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<{
-      0: void;
-    }>;
-
-    "c_0x8efbff40(bytes32)"(
-      c__0x8efbff40: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<{
-      0: void;
-    }>;
-
     queuedTransactions(
       arg0: BytesLike,
       overrides?: CallOverrides
@@ -361,26 +315,6 @@ export class Bridge extends Contract {
 
   "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
 
-  c_0x081fa67a(
-    c__0x081fa67a: BytesLike,
-    overrides?: CallOverrides
-  ): Promise<void>;
-
-  "c_0x081fa67a(bytes32)"(
-    c__0x081fa67a: BytesLike,
-    overrides?: CallOverrides
-  ): Promise<void>;
-
-  c_0x8efbff40(
-    c__0x8efbff40: BytesLike,
-    overrides?: CallOverrides
-  ): Promise<void>;
-
-  "c_0x8efbff40(bytes32)"(
-    c__0x8efbff40: BytesLike,
-    overrides?: CallOverrides
-  ): Promise<void>;
-
   queuedTransactions(
     arg0: BytesLike,
     overrides?: CallOverrides
@@ -477,26 +411,6 @@ export class Bridge extends Contract {
     WARM_UP(overrides?: CallOverrides): Promise<BigNumber>;
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
-
-    c_0x081fa67a(
-      c__0x081fa67a: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    "c_0x081fa67a(bytes32)"(
-      c__0x081fa67a: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    c_0x8efbff40(
-      c__0x8efbff40: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    "c_0x8efbff40(bytes32)"(
-      c__0x8efbff40: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<void>;
 
     queuedTransactions(
       arg0: BytesLike,
@@ -597,26 +511,6 @@ export class Bridge extends Contract {
     WARM_UP(overrides?: CallOverrides): Promise<BigNumber>;
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<BigNumber>;
-
-    c_0x081fa67a(
-      c__0x081fa67a: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    "c_0x081fa67a(bytes32)"(
-      c__0x081fa67a: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    c_0x8efbff40(
-      c__0x8efbff40: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    "c_0x8efbff40(bytes32)"(
-      c__0x8efbff40: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     queuedTransactions(
       arg0: BytesLike,
@@ -719,26 +613,6 @@ export class Bridge extends Contract {
     WARM_UP(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     "WARM_UP()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    c_0x081fa67a(
-      c__0x081fa67a: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    "c_0x081fa67a(bytes32)"(
-      c__0x081fa67a: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    c_0x8efbff40(
-      c__0x8efbff40: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    "c_0x8efbff40(bytes32)"(
-      c__0x8efbff40: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
 
     queuedTransactions(
       arg0: BytesLike,

@@ -98,19 +98,6 @@ const _abi = [
   {
     inputs: [
       {
-        internalType: "bytes32",
-        name: "c__0x8efbff40",
-        type: "bytes32",
-      },
-    ],
-    name: "c_0x8efbff40",
-    outputs: [],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
         internalType: "uint256",
         name: "period",
         type: "uint256",

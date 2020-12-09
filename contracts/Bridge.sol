@@ -37,8 +37,6 @@ abstract contract Bridge is TimePeriod {
         (bool success, bytes memory returnData) = target.call{value : value}(callData);
         require(success, string(returnData));
 
-        //        emit ExecuteTransaction(txHash, target, value, signature, data, eta);
-
         return returnData;
     }
 
