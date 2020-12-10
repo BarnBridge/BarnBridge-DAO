@@ -8,21 +8,22 @@ abstract contract Bridge is TimePeriod {
     mapping(bytes32 => bool) public queuedTransactions;
 
     function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) internal returns (bytes32) {
-        bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-
+        bytes32 txHash = _getTxHash(target, value, signature, data, eta);
         queuedTransactions[txHash] = true;
+
         return txHash;
     }
 
     function cancelTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) internal {
-        bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
+        bytes32 txHash = _getTxHash(target, value, signature, data, eta);
         queuedTransactions[txHash] = false;
     }
 
     function executeTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) internal returns (bytes memory) {
-        bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        require(getBlockTimestamp() >= eta || isGuardian(), "executeTransaction: Transaction hasn't surpassed time lock.");
-        require(getBlockTimestamp() <= eta + GRACE_PERIOD, "executeTransaction: Transaction is stale.");
+        bytes32 txHash = _getTxHash(target, value, signature, data, eta);
+
+        require(block.timestamp >= eta, "executeTransaction: Transaction hasn't surpassed time lock.");
+        require(block.timestamp <= eta + GRACE_PERIOD, "executeTransaction: Transaction is stale.");
 
         queuedTransactions[txHash] = false;
 
@@ -33,6 +34,7 @@ abstract contract Bridge is TimePeriod {
         } else {
             callData = abi.encodePacked(bytes4(keccak256(bytes(signature))), data);
         }
+
         // solium-disable-next-line security/no-call-value
         (bool success, bytes memory returnData) = target.call{value : value}(callData);
         require(success, string(returnData));
@@ -40,11 +42,7 @@ abstract contract Bridge is TimePeriod {
         return returnData;
     }
 
-    function getBlockTimestamp() internal view returns (uint) {
-        // solium-disable-next-line security/no-block-members
-        return block.timestamp;
+    function _getTxHash(address target, uint value, string memory signature, bytes memory data, uint eta) internal returns (bytes32) {
+        return keccak256(abi.encode(target, value, signature, data, eta));
     }
-
-    function isGuardian() internal view virtual returns (bool);
-
 }
