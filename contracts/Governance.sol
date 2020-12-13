@@ -79,7 +79,7 @@ contract Governance is Bridge {
 
     event ProposalCreated(uint indexed proposalId);
     event VotingStarted(uint indexed proposalId);
-    event Vote(uint indexed proposalId, address indexed user, bool support);
+    event Vote(uint indexed proposalId, address indexed user, bool support, uint256 power);
     event VoteCanceled(uint indexed proposalId, address indexed user);
     event ProposalQueued(uint indexed proposalId);
     event ProposalExecuted(uint indexed proposalId);
@@ -287,7 +287,7 @@ contract Governance is Bridge {
         receipt.votes = votes;
         receipt.support = support;
 
-        emit Vote(proposalId, voter, support);
+        emit Vote(proposalId, voter, support, votes);
     }
 
     function _cancelVote(address voter, uint proposalId) internal {
