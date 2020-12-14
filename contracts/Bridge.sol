@@ -1,29 +1,29 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.7.1;
 
-import "./TimePeriod.sol";
+import "./Parameters.sol";
 
-abstract contract Bridge is TimePeriod {
+abstract contract Bridge is Parameters {
 
     mapping(bytes32 => bool) public queuedTransactions;
 
-    function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) internal returns (bytes32) {
+    function queueTransaction(address target, uint256 value, string memory signature, bytes memory data, uint256 eta) internal returns (bytes32) {
         bytes32 txHash = _getTxHash(target, value, signature, data, eta);
         queuedTransactions[txHash] = true;
 
         return txHash;
     }
 
-    function cancelTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) internal {
+    function cancelTransaction(address target, uint256 value, string memory signature, bytes memory data, uint256 eta) internal {
         bytes32 txHash = _getTxHash(target, value, signature, data, eta);
         queuedTransactions[txHash] = false;
     }
 
-    function executeTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) internal returns (bytes memory) {
+    function executeTransaction(address target, uint256 value, string memory signature, bytes memory data, uint256 eta) internal returns (bytes memory) {
         bytes32 txHash = _getTxHash(target, value, signature, data, eta);
 
         require(block.timestamp >= eta, "executeTransaction: Transaction hasn't surpassed time lock.");
-        require(block.timestamp <= eta + GRACE_PERIOD, "executeTransaction: Transaction is stale.");
+        require(block.timestamp <= eta + gracePeriodDuration, "executeTransaction: Transaction is stale.");
 
         queuedTransactions[txHash] = false;
 
@@ -42,7 +42,7 @@ abstract contract Bridge is TimePeriod {
         return returnData;
     }
 
-    function _getTxHash(address target, uint value, string memory signature, bytes memory data, uint eta) internal returns (bytes32) {
+    function _getTxHash(address target, uint256 value, string memory signature, bytes memory data, uint256 eta) internal returns (bytes32) {
         return keccak256(abi.encode(target, value, signature, data, eta));
     }
 }

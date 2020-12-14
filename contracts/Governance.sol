@@ -4,8 +4,10 @@ pragma experimental ABIEncoderV2;
 
 import "./interfaces/IBarn.sol";
 import "./Bridge.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract Governance is Bridge {
+    using SafeMath for uint256;
 
     enum ProposalState {
         WarmUp,
@@ -24,7 +26,7 @@ contract Governance is Bridge {
         // Whether or not a vote has been cast
         bool hasVoted;
         // The number of votes the voter had, which were cast
-        uint votes;
+        uint256 votes;
         // support
         bool support;
     }
@@ -32,7 +34,7 @@ contract Governance is Bridge {
     struct Proposal {
         // proposal identifiers
         // unique id
-        uint id;
+        uint256 id;
         // Creator of the proposal
         address proposer;
         // proposal description
@@ -49,20 +51,20 @@ contract Governance is Bridge {
         // The ordered list of calldata to be passed to each call
         bytes[] calldatas;
 
-        // proposal proposal creation time - 1
-        uint createTime;
+        // proposal creation time - 1
+        uint256 createTime;
         // proposal actual vote start time
-        uint startTime;
+        uint256 startTime;
 
         // votes status
         // Minimum amount of vBond votes for this proposal to be considered
-        uint quorum;
+        uint256 quorum;
         // The timestamp that the proposal will be available for execution, set once the vote succeeds
-        uint eta;
+        uint256 eta;
         // Current number of votes in favor of this proposal
-        uint forVotes;
+        uint256 forVotes;
         // Current number of votes in opposition to this proposal
-        uint againstVotes;
+        uint256 againstVotes;
 
         bool canceled;
         bool executed;
@@ -71,19 +73,20 @@ contract Governance is Bridge {
         mapping(address => Receipt) receipts;
     }
 
-    uint public lastProposalId;
-    mapping(uint => Proposal) public proposals;
-    mapping(address => uint) public latestProposalIds;
+    uint256 public lastProposalId;
+    mapping(uint256 => Proposal) public proposals;
+    mapping(address => uint256) public latestProposalIds;
     IBarn barn;
     bool isInitialized;
+    bool isActive;
 
-    event ProposalCreated(uint indexed proposalId);
-    event VotingStarted(uint indexed proposalId);
-    event Vote(uint indexed proposalId, address indexed user, bool support, uint256 power);
-    event VoteCanceled(uint indexed proposalId, address indexed user);
-    event ProposalQueued(uint indexed proposalId);
-    event ProposalExecuted(uint indexed proposalId);
-    event ProposalCanceled(uint indexed proposalId);
+    event ProposalCreated(uint256 indexed proposalId);
+    event VotingStarted(uint256 indexed proposalId);
+    event Vote(uint256 indexed proposalId, address indexed user, bool support, uint256 power);
+    event VoteCanceled(uint256 indexed proposalId, address indexed user);
+    event ProposalQueued(uint256 indexed proposalId);
+    event ProposalExecuted(uint256 indexed proposalId);
+    event ProposalCanceled(uint256 indexed proposalId);
 
     // executed only once.
     function initialize(address barnAddr) public {
@@ -92,24 +95,43 @@ contract Governance is Bridge {
         isInitialized = true;
     }
 
-    function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description, string memory title) public returns (uint) {
-        // requires for the user
-        // check voting power
-        require(barn.votingPowerAtTs(msg.sender, block.timestamp - 1) >= barn.bondCirculatingSupply() / 100, "User must own at least 1%");
-        require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "Proposal function information arity mismatch");
-        require(targets.length != 0, "Must provide actions");
-        require(targets.length <= proposalMaxOperations(), "Too many actions on a vote");
-
-        // check if user has another running vote
-        uint latestProposalId = latestProposalIds[msg.sender];
-        if (latestProposalId != 0) {
-            ProposalState proposersLatestProposalState = state(latestProposalId);
-            require(proposersLatestProposalState != ProposalState.Active, "One live proposal per proposer, found an already active proposal");
-            require(proposersLatestProposalState != ProposalState.ReadyForActivation, "One live proposal per proposer, found an already ReadyForActivation proposal");
-            require(proposersLatestProposalState != ProposalState.WarmUp, "One live proposal per proposer, found an already warmup proposal");
+    function propose(
+        address[] memory targets,
+        uint[] memory values,
+        string[] memory signatures,
+        bytes[] memory calldatas,
+        string memory description,
+        string memory title
+    )
+    public returns (uint256)
+    {
+        if (!isActive) {
+            require(barn.bondStaked() >= ACTIVATION_THRESHOLD, "DAO not yet active");
+            isActive = true;
         }
 
-        uint newProposalId = lastProposalId + 1;
+        require(
+            barn.votingPowerAtTs(msg.sender, block.timestamp - 1) >= getCreationThreshold(),
+            "User must own at least 1%"
+        );
+        require(
+            targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length,
+            "Proposal function information arity mismatch"
+        );
+        require(targets.length != 0, "Must provide actions");
+        require(targets.length <= PROPOSAL_MAX_ACTIONS, "Too many actions on a vote");
+
+        // check if user has another running vote
+        uint256 previousProposalId = latestProposalIds[msg.sender];
+        if (previousProposalId != 0) {
+            ProposalState s = state(previousProposalId);
+            require(
+                s == ProposalState.Executed || s == ProposalState.Canceled || s == ProposalState.Expired,
+                "one live proposal per proposer"
+            );
+        }
+
+        uint256 newProposalId = lastProposalId + 1;
         Proposal storage newProposal = proposals[newProposalId];
         newProposal.id = newProposalId;
         newProposal.proposer = msg.sender;
@@ -129,31 +151,16 @@ contract Governance is Bridge {
         return newProposalId;
     }
 
-    function startVote(uint proposalId) public {
-        _startVote(proposalId);
-    }
-
-    function castVote(uint proposalId, bool support) public {
-        if (state(proposalId) == ProposalState.ReadyForActivation) {
-            _startVote(proposalId);
-        }
-        return _castVote(msg.sender, proposalId, support);
-    }
-
-    function cancelVote(uint proposalId) public {
-        return _cancelVote(msg.sender, proposalId);
-    }
-
-    function queue(uint proposalId) public {
+    function queue(uint256 proposalId) public {
         require(state(proposalId) == ProposalState.Accepted, "Proposal can only be queued if it is succeeded");
 
         Proposal storage proposal = proposals[proposalId];
         require(proposal.canceled == false, "Cannot queue a canceled proposal");
 
-        uint eta = proposal.startTime + ACTIVE + QUEUE;
+        uint256 eta = proposal.startTime + activeDuration + queueDuration;
         proposal.eta = eta;
 
-        for (uint i = 0; i < proposal.targets.length; i++) {
+        for (uint256 i = 0; i < proposal.targets.length; i++) {
             require(!queuedTransactions[_getTxHash(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta)], "proposal action already queued at eta");
             queueTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
         }
@@ -161,179 +168,176 @@ contract Governance is Bridge {
         emit ProposalQueued(proposalId);
     }
 
-    function execute(uint proposalId) public payable {
+    function execute(uint256 proposalId) public payable {
         require(_canBeExecuted(proposalId), "Cannot be executed");
 
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
 
-        for (uint i = 0; i < proposal.targets.length; i++) {
+        for (uint256 i = 0; i < proposal.targets.length; i++) {
             executeTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
 
         emit ProposalExecuted(proposalId);
     }
 
-    function cancel(uint proposalId) public {
+    function cancelProposal(uint256 proposalId) public {
         ProposalState state = state(proposalId);
+
         require(state != ProposalState.Executed, "Cannot cancel executed proposal");
         require(state != ProposalState.Failed, "Cannot cancel failed proposal");
         require(state != ProposalState.Expired, "Cannot cancel expired proposal");
 
+        require(_canCancelProposal(proposalId), "Only the proposal creator can cancel a proposal");
         Proposal storage proposal = proposals[proposalId];
-        require(_canCancel(proposalId), "Only the proposal creator can cancel a proposal");
         proposal.canceled = true;
 
-        for (uint i = 0; i < proposal.targets.length; i++) {
+        for (uint256 i = 0; i < proposal.targets.length; i++) {
             cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
 
         emit ProposalCanceled(proposalId);
     }
 
-    // views
-    function state(uint proposalId) public view returns (ProposalState) {
-        require(lastProposalId >= proposalId && proposalId > 0, "invalid proposal id");
-        Proposal storage proposal = proposals[proposalId];
-
-        // compute state by time
-        if (proposal.canceled || block.timestamp > proposal.createTime + WARM_UP + ACTIVE && proposal.startTime == 0) {
-            return ProposalState.Canceled;
-        }
-        if (block.timestamp <= proposal.createTime + WARM_UP) {
-            return ProposalState.WarmUp;
-        }
-        if (block.timestamp > proposal.createTime + WARM_UP && proposal.startTime == 0) {
-            return ProposalState.ReadyForActivation;
-        }
-        if (block.timestamp <= proposal.startTime + ACTIVE) {
-            return ProposalState.Active;
-        }
-
-        // compute state by votes
-        if (proposal.forVotes <= ((proposal.forVotes + proposal.againstVotes) * MINIMUM_FOR_VOTES_THRESHOLD) / 100 || (proposal.forVotes + proposal.againstVotes) < proposal.quorum) {
-            return ProposalState.Failed;
-        }
-        // vote is accepted
-
-        // vote is accepted but not sent to be executed
-        if (proposal.eta == 0) {
-            return ProposalState.Accepted;
-        }
-
-        // vote is executed
-        if (proposal.executed == true) {
-            return ProposalState.Executed;
-        }
-
-        // vote sent to be executed
-        if (block.timestamp < proposal.eta) {
-            return ProposalState.Queued;
-        }
-        // vote can be executed
-        if (block.timestamp <= proposal.eta + GRACE_PERIOD && proposal.executed == false) {
-            return ProposalState.Grace;
-        }
-
-        // return expired for votes not executed in grace period
-        return ProposalState.Expired;
-    }
-
-    function getReceipt(uint proposalId, address voter) public view returns (Receipt memory) {
-        return proposals[proposalId].receipts[voter];
-    }
-
-    function getActions(uint proposalId) public view returns (address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas) {
-        Proposal storage p = proposals[proposalId];
-        return (p.targets, p.values, p.signatures, p.calldatas);
-    }
-
-    // internal
-
-    function _startVote(uint proposalId) internal {
-        require(state(proposalId) == ProposalState.ReadyForActivation, 'Proposal needs to be in RedyForActivation state');
-        Proposal storage proposal = proposals[proposalId];
-        proposal.startTime = block.timestamp - 1;
-        proposal.quorum = (barn.bondCirculatingSupply() * MINIMUM_QUORUM) / 100;
-
-        emit VotingStarted(proposalId);
-    }
-
-    function _castVote(address voter, uint proposalId, bool support) internal {
+    function castVote(uint256 proposalId, bool support) public {
         require(state(proposalId) == ProposalState.Active, "Voting is closed");
+
         Proposal storage proposal = proposals[proposalId];
-        Receipt storage receipt = proposal.receipts[voter];
+        Receipt storage receipt = proposal.receipts[msg.sender];
+
         // exit if user already voted
         require(receipt.hasVoted == false || receipt.hasVoted && receipt.support != support, "Already voted this option");
 
-        uint votes = barn.votingPowerAtTs(voter, proposal.startTime);
+        uint256 votes = barn.votingPowerAtTs(msg.sender, proposal.startTime);
 
         // means it changed its vote
         if (receipt.hasVoted) {
             if (receipt.support) {
-                proposal.forVotes = sub256(proposal.forVotes, receipt.votes);
+                proposal.forVotes = proposal.forVotes.sub(receipt.votes);
             } else {
-                proposal.againstVotes = sub256(proposal.againstVotes, receipt.votes);
+                proposal.againstVotes = proposal.againstVotes.sub(receipt.votes);
             }
         }
 
         if (support) {
-            proposal.forVotes = add256(proposal.forVotes, votes);
+            proposal.forVotes = proposal.forVotes.add(votes);
         } else {
-            proposal.againstVotes = add256(proposal.againstVotes, votes);
+            proposal.againstVotes = proposal.againstVotes.add(votes);
         }
 
         receipt.hasVoted = true;
         receipt.votes = votes;
         receipt.support = support;
 
-        emit Vote(proposalId, voter, support, votes);
+        emit Vote(proposalId, msg.sender, support, votes);
     }
 
-    function _cancelVote(address voter, uint proposalId) internal {
+    function cancelVote(uint256 proposalId) public {
         require(state(proposalId) == ProposalState.Active, "Voting is closed");
-        Proposal storage proposal = proposals[proposalId];
-        Receipt storage receipt = proposal.receipts[voter];
-        uint votes = barn.votingPowerAtTs(voter, proposal.startTime);
 
-        // exit if user didn't vote
+        Proposal storage proposal = proposals[proposalId];
+        Receipt storage receipt = proposal.receipts[msg.sender];
+
+        uint256 votes = barn.votingPowerAtTs(msg.sender, proposal.startTime);
+
         require(receipt.hasVoted, "Cannot cancel if not voted yet");
+
         if (receipt.support) {
-            proposal.forVotes = sub256(proposal.forVotes, votes);
+            proposal.forVotes = proposal.forVotes.sub(votes);
         } else {
-            proposal.againstVotes = sub256(proposal.againstVotes, votes);
+            proposal.againstVotes = proposal.againstVotes.sub(votes);
         }
+
         receipt.hasVoted = false;
         receipt.votes = 0;
         receipt.support = false;
 
-        emit VoteCanceled(proposalId, voter);
+        emit VoteCanceled(proposalId, msg.sender);
     }
 
-    function _canCancel(uint proposalId) internal view returns (bool){
+    // views
+    function state(uint256 proposalId) public view returns (ProposalState) {
+        require(0 < proposalId && proposalId <= lastProposalId, "invalid proposal id");
+
         Proposal storage proposal = proposals[proposalId];
 
-        if (msg.sender == proposal.proposer) {
+        if (proposal.canceled) {
+            return ProposalState.Canceled;
+        }
+
+        if (proposal.executed) {
+            return ProposalState.Executed;
+        }
+
+        if (block.timestamp <= proposal.createTime + warmUpDuration) {
+            return ProposalState.WarmUp;
+        }
+
+        if (block.timestamp <= proposal.createTime + warmUpDuration + activeDuration) {
+            return ProposalState.Active;
+        }
+
+        if (block.timestamp <= proposal.startTime + activeDuration) {
+            return ProposalState.Active;
+        }
+
+        if ((proposal.forVotes + proposal.againstVotes) < proposal.quorum ||
+            (proposal.forVotes <= _getMinForVotes(proposal))) {
+            return ProposalState.Failed;
+        }
+
+        if (proposal.eta == 0) {
+            return ProposalState.Accepted;
+        }
+
+        if (block.timestamp < proposal.eta) {
+            return ProposalState.Queued;
+        }
+
+        if (block.timestamp <= proposal.eta + gracePeriodDuration) {
+            return ProposalState.Grace;
+        }
+
+        return ProposalState.Expired;
+    }
+
+    function getReceipt(uint256 proposalId, address voter) public view returns (Receipt memory) {
+        return proposals[proposalId].receipts[voter];
+    }
+
+    function getActions(uint256 proposalId) public view returns (
+        address[] memory targets,
+        uint[] memory values,
+        string[] memory signatures,
+        bytes[] memory calldatas
+    ) {
+        Proposal storage p = proposals[proposalId];
+        return (p.targets, p.values, p.signatures, p.calldatas);
+    }
+
+    // internal
+
+    function _canCancelProposal(uint256 proposalId) internal view returns (bool){
+        Proposal storage proposal = proposals[proposalId];
+
+        if (msg.sender == proposal.proposer ||
+            barn.votingPower(proposal.proposer) < getCreationThreshold()
+        ) {
             return true;
         }
+
         return false;
     }
 
-    function _canBeExecuted(uint proposalId) internal view returns (bool) {
+    function _canBeExecuted(uint256 proposalId) internal view returns (bool) {
         return state(proposalId) == ProposalState.Grace;
     }
 
-    // pure functions
-    function proposalMaxOperations() public pure returns (uint) {return 10;} // 10 actions
-
-    function add256(uint256 a, uint256 b) internal pure returns (uint) {
-        uint c = a + b;
-        require(c >= a, "addition overflow");
-        return c;
+    function _getMinForVotes(Proposal storage proposal) internal view returns (uint256) {
+        return (proposal.forVotes + proposal.againstVotes).mul(acceptanceThreshold).div(100);
     }
 
-    function sub256(uint256 a, uint256 b) internal pure returns (uint) {
-        require(b <= a, "subtraction underflow");
-        return a - b;
+    function getCreationThreshold() internal view returns (uint256) {
+        return barn.bondStaked().div(100);
     }
 }
