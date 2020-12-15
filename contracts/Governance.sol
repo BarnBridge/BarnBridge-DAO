@@ -185,11 +185,14 @@ contract Governance is Bridge {
     function cancelProposal(uint256 proposalId) public {
         ProposalState state = state(proposalId);
 
-        require(state != ProposalState.Executed, "Cannot cancel executed proposal");
-        require(state != ProposalState.Failed, "Cannot cancel failed proposal");
-        require(state != ProposalState.Expired, "Cannot cancel expired proposal");
+        require(
+            state != ProposalState.Executed && state != ProposalState.Failed && state != ProposalState.Expired,
+            "Proposal in state that does not allow cancellation"
+        );
 
-        require(_canCancelProposal(proposalId), "Only the proposal creator can cancel a proposal");
+        require(_canCancelProposal(proposalId), "Cancellation requirements not met");
+
+
         Proposal storage proposal = proposals[proposalId];
         proposal.canceled = true;
 

@@ -12,7 +12,7 @@ describe('Governance', function () {
     let voter1: Signer, voter2: Signer, voter3: Signer;
     let snapshotId: any;
 
-    let warmUpDuration:number, activeDuration:number, queueDuration:number, gracePeriodDuration:number;
+    let warmUpDuration: number, activeDuration: number, queueDuration: number, gracePeriodDuration: number;
 
     enum ProposalState {
         WarmUp,
@@ -324,7 +324,7 @@ describe('Governance', function () {
 
             expect(await governance.state(1)).to.be.equal(ProposalState.Failed);
             await expect(governance.connect(user).cancelProposal(1))
-                .to.be.revertedWith('Cannot cancel failed proposal');
+                .to.be.revertedWith('Proposal in state that does not allow cancellation');
 
             await helpers.moveAtTimestamp(ts);
             expect(await governance.state(1)).to.be.equal(ProposalState.Active);
@@ -350,14 +350,14 @@ describe('Governance', function () {
             await helpers.moveAtTimestamp((proposal.eta).toNumber() + gracePeriodDuration + 1);
             expect(await governance.state(1)).to.be.equal(ProposalState.Expired);
             await expect(governance.connect(user).cancelProposal(1))
-                .to.be.revertedWith('Cannot cancel expired proposal');
+                .to.be.revertedWith('Proposal in state that does not allow cancellation');
 
             await helpers.moveAtTimestamp((proposal.eta).toNumber() + 1);
             await governance.execute(1);
             expect(await governance.state(1)).to.be.equal(ProposalState.Executed);
             expect(await barn.withdrawHasBeenCalled()).to.be.true;
             await expect(governance.connect(user).cancelProposal(1))
-                .to.be.revertedWith('Cannot cancel executed proposal');
+                .to.be.revertedWith('Proposal in state that does not allow cancellation');
         });
 
         it('fail for invalid quorum', async function () {
@@ -488,6 +488,23 @@ describe('Governance', function () {
             await createTestProposal();
 
             await governance.connect(user).cancelProposal(1);
+            expect(await governance.state(1)).to.be.equal(ProposalState.Canceled);
+        });
+
+        it('allows anyone to cancel a proposal if creator balance fell below threshold', async function () {
+            await setupEnv();
+            await createTestProposal();
+
+            const ts = await helpers.getCurrentBlockchainTimestamp();
+
+            await helpers.moveAtTimestamp(ts + warmUpDuration);
+
+            await expect(governance.connect(voter1).cancelProposal(1))
+                .to.be.revertedWith('Cancellation requirements not met');
+
+            await barn.setVotingPower(userAddress, 0);
+
+            await expect(governance.connect(voter1).cancelProposal(1)).to.not.be.reverted;
             expect(await governance.state(1)).to.be.equal(ProposalState.Canceled);
         });
     });

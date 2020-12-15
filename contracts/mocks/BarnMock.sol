@@ -14,6 +14,10 @@ contract BarnMock {
         return _votingPowerAtTs[user];
     }
 
+    function votingPower(address user) external view returns (uint256) {
+        return _votingPowerAtTs[user];
+    }
+
     function bondStaked() external view returns (uint256) {
         return _bondStaked;
     }
