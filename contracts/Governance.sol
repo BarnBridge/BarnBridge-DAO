@@ -11,7 +11,6 @@ contract Governance is Bridge {
 
     enum ProposalState {
         WarmUp,
-        ReadyForActivation,
         Active,
         Canceled,
         Failed,
@@ -53,12 +52,8 @@ contract Governance is Bridge {
 
         // proposal creation time - 1
         uint256 createTime;
-        // proposal actual vote start time
-        uint256 startTime;
 
         // votes status
-        // Minimum amount of vBond votes for this proposal to be considered
-        uint256 quorum;
         // The timestamp that the proposal will be available for execution, set once the vote succeeds
         uint256 eta;
         // Current number of votes in favor of this proposal
@@ -78,10 +73,9 @@ contract Governance is Bridge {
     mapping(address => uint256) public latestProposalIds;
     IBarn barn;
     bool isInitialized;
-    bool isActive;
+    bool public isActive;
 
     event ProposalCreated(uint256 indexed proposalId);
-    event VotingStarted(uint256 indexed proposalId);
     event Vote(uint256 indexed proposalId, address indexed user, bool support, uint256 power);
     event VoteCanceled(uint256 indexed proposalId, address indexed user);
     event ProposalQueued(uint256 indexed proposalId);
@@ -93,6 +87,13 @@ contract Governance is Bridge {
         require(isInitialized == false, 'Contract already initialized.');
         barn = IBarn(barnAddr);
         isInitialized = true;
+    }
+
+    function activate() public {
+        require(!isActive, "DAO already active");
+        require(barn.bondStaked() >= ACTIVATION_THRESHOLD, "Threshold not met yet");
+
+        isActive = true;
     }
 
     function propose(
@@ -111,7 +112,7 @@ contract Governance is Bridge {
         }
 
         require(
-            barn.votingPowerAtTs(msg.sender, block.timestamp - 1) >= getCreationThreshold(),
+            barn.votingPowerAtTs(msg.sender, block.timestamp - 1) >= _getCreationThreshold(),
             "User must own at least 1%"
         );
         require(
@@ -127,7 +128,7 @@ contract Governance is Bridge {
             ProposalState s = state(previousProposalId);
             require(
                 s == ProposalState.Executed || s == ProposalState.Canceled || s == ProposalState.Expired,
-                "one live proposal per proposer"
+                "One live proposal per proposer"
             );
         }
 
@@ -157,7 +158,7 @@ contract Governance is Bridge {
         Proposal storage proposal = proposals[proposalId];
         require(proposal.canceled == false, "Cannot queue a canceled proposal");
 
-        uint256 eta = proposal.startTime + activeDuration + queueDuration;
+        uint256 eta = proposal.createTime + warmUpDuration + activeDuration + queueDuration;
         proposal.eta = eta;
 
         for (uint256 i = 0; i < proposal.targets.length; i++) {
@@ -208,7 +209,7 @@ contract Governance is Bridge {
         // exit if user already voted
         require(receipt.hasVoted == false || receipt.hasVoted && receipt.support != support, "Already voted this option");
 
-        uint256 votes = barn.votingPowerAtTs(msg.sender, proposal.startTime);
+        uint256 votes = barn.votingPowerAtTs(msg.sender, _getSnapshotTimestamp(proposal));
 
         // means it changed its vote
         if (receipt.hasVoted) {
@@ -238,7 +239,7 @@ contract Governance is Bridge {
         Proposal storage proposal = proposals[proposalId];
         Receipt storage receipt = proposal.receipts[msg.sender];
 
-        uint256 votes = barn.votingPowerAtTs(msg.sender, proposal.startTime);
+        uint256 votes = barn.votingPowerAtTs(msg.sender, _getSnapshotTimestamp(proposal));
 
         require(receipt.hasVoted, "Cannot cancel if not voted yet");
 
@@ -277,11 +278,7 @@ contract Governance is Bridge {
             return ProposalState.Active;
         }
 
-        if (block.timestamp <= proposal.startTime + activeDuration) {
-            return ProposalState.Active;
-        }
-
-        if ((proposal.forVotes + proposal.againstVotes) < proposal.quorum ||
+        if ((proposal.forVotes + proposal.againstVotes) < _getQuorum(proposal) ||
             (proposal.forVotes <= _getMinForVotes(proposal))) {
             return ProposalState.Failed;
         }
@@ -315,13 +312,19 @@ contract Governance is Bridge {
         return (p.targets, p.values, p.signatures, p.calldatas);
     }
 
+    function getProposalQuorum(uint256 proposalId) public view returns (uint256) {
+        require(0 < proposalId && proposalId <= lastProposalId, "invalid proposal id");
+
+        return _getQuorum(proposals[proposalId]);
+    }
+
     // internal
 
     function _canCancelProposal(uint256 proposalId) internal view returns (bool){
         Proposal storage proposal = proposals[proposalId];
 
         if (msg.sender == proposal.proposer ||
-            barn.votingPower(proposal.proposer) < getCreationThreshold()
+            barn.votingPower(proposal.proposer) < _getCreationThreshold()
         ) {
             return true;
         }
@@ -337,7 +340,18 @@ contract Governance is Bridge {
         return (proposal.forVotes + proposal.againstVotes).mul(acceptanceThreshold).div(100);
     }
 
-    function getCreationThreshold() internal view returns (uint256) {
+    function _getCreationThreshold() internal view returns (uint256) {
         return barn.bondStaked().div(100);
+    }
+
+    // Returns the timestamp of the snapshot for a given proposal
+    // If the current block's timestamp is equal to `proposal.createTime + warmUpDuration` then the state function
+    // will return WarmUp as state which will prevent any vote to be cast which will gracefully avoid any flashloan attack
+    function _getSnapshotTimestamp(Proposal storage proposal) internal view returns (uint256) {
+        return proposal.createTime + warmUpDuration;
+    }
+
+    function _getQuorum(Proposal storage proposal) internal view returns (uint256) {
+        return barn.bondStakedAtTs(_getSnapshotTimestamp(proposal)).mul(minQuorum).div(100);
     }
 }
