@@ -44,7 +44,7 @@ contract Governance is Bridge {
         // ordered list of target addresses to be made
         address[] targets;
         // The ordered list of values (i.e. msg.value) to be passed to the calls to be made
-        uint[] values;
+        uint256[] values;
         // The ordered list of function signatures to be called
         string[] signatures;
         // The ordered list of calldata to be passed to each call
@@ -98,7 +98,7 @@ contract Governance is Bridge {
 
     function propose(
         address[] memory targets,
-        uint[] memory values,
+        uint256[] memory values,
         string[] memory signatures,
         bytes[] memory calldatas,
         string memory description,
@@ -307,7 +307,7 @@ contract Governance is Bridge {
 
     function getActions(uint256 proposalId) public view returns (
         address[] memory targets,
-        uint[] memory values,
+        uint256[] memory values,
         string[] memory signatures,
         bytes[] memory calldatas
     ) {

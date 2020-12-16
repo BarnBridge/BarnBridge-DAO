@@ -5,7 +5,7 @@ import "../interfaces/IBarn.sol";
 
 contract BarnMock {
     uint256 private _bondStaked;
-    mapping(address => uint) private _votingPowerAtTs;
+    mapping(address => uint256) private _votingPowerAtTs;
     bool public lockCreatorBalanceHasBeenCalled;
     bool public withdrawHasBeenCalled;
 
