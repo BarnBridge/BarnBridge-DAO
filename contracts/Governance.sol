@@ -412,6 +412,10 @@ contract Governance is Bridge {
         return proposals[proposalId].receipts[voter];
     }
 
+    function getCancellationProposalReceipt(uint256 proposalId, address voter) public view returns (Receipt memory) {
+        return cancellationProposals[proposalId].receipts[voter];
+    }
+
     function getActions(uint256 proposalId) public view returns (
         address[] memory targets,
         uint256[] memory values,
