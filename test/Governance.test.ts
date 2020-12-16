@@ -509,6 +509,265 @@ describe('Governance', function () {
         });
     });
 
+    describe('cancellation proposal', function () {
+        it('reverts if proposal id is not valid', async function () {
+            await expect(governance.startCancellationProposal(1))
+                .to.be.revertedWith('invalid proposal id');
+        });
+
+        it('works only if proposal is in queued state', async function () {
+            await setupEnv();
+            await createTestProposal();
+
+            const creationTs = await helpers.getCurrentBlockchainTimestamp();
+
+            expect(await governance.state(1)).to.equal(ProposalState.WarmUp);
+            await expect(governance.startCancellationProposal(1))
+                .to.be.revertedWith('Proposal must be in queue');
+
+            await helpers.moveAtTimestamp(creationTs + warmUpDuration + 1);
+
+            expect(await governance.state(1)).to.equal(ProposalState.Active);
+            await expect(governance.startCancellationProposal(1))
+                .to.be.revertedWith('Proposal must be in queue');
+
+            await governance.connect(user).castVote(1, false);
+            await governance.connect(voter1).castVote(1, true);
+            await governance.connect(voter2).castVote(1, true);
+            await governance.connect(voter3).castVote(1, true);
+
+            expect(await governance.state(1)).to.equal(ProposalState.Active);
+            await expect(governance.startCancellationProposal(1))
+                .to.be.revertedWith('Proposal must be in queue');
+
+            await helpers.moveAtTimestamp(creationTs + warmUpDuration + activeDuration + 1);
+            expect(await governance.state(1)).to.equal(ProposalState.Accepted);
+            await expect(governance.startCancellationProposal(1))
+                .to.be.revertedWith('Proposal must be in queue');
+
+            let snapshot = await takeSnapshot();
+
+            await governance.queue(1);
+
+            expect(await governance.state(1)).to.equal(ProposalState.Queued);
+            await expect(governance.startCancellationProposal(1))
+                .to.not.be.reverted;
+
+            const cancellationProposalCreationTs = await helpers.getCurrentBlockchainTimestamp();
+            expect((await governance.cancellationProposals(1)).createTime).to.equal(cancellationProposalCreationTs);
+
+            await expect(governance.startCancellationProposal(1))
+                .to.be.revertedWith('Cancellation proposal already exists');
+
+            await revertEVM(snapshot);
+
+            snapshot = await takeSnapshot();
+            await governance.connect(user).cancelProposal(1);
+            expect(await governance.state(1)).to.equal(ProposalState.Canceled);
+            await expect(governance.startCancellationProposal(1))
+                .to.be.revertedWith('Proposal must be in queue');
+            await revertEVM(snapshot);
+
+            await governance.queue(1);
+
+            await helpers.moveAtTimestamp(creationTs + warmUpDuration + activeDuration + queueDuration + 1);
+            expect(await governance.state(1)).to.equal(ProposalState.Grace);
+            await expect(governance.startCancellationProposal(1))
+                .to.be.revertedWith('Proposal must be in queue');
+
+            snapshot = await takeSnapshot();
+            await governance.execute(1);
+
+            expect(await governance.state(1)).to.equal(ProposalState.Executed);
+            await expect(governance.startCancellationProposal(1))
+                .to.be.revertedWith('Proposal must be in queue');
+
+            await revertEVM(snapshot);
+
+            await helpers.moveAtTimestamp(creationTs + warmUpDuration + activeDuration + queueDuration + gracePeriodDuration + 1);
+
+            expect(await governance.state(1)).to.equal(ProposalState.Expired);
+            await expect(governance.startCancellationProposal(1))
+                .to.be.revertedWith('Proposal must be in queue');
+        });
+
+        async function prepareProposalForCancellation (): Promise<number> {
+            await setupEnv();
+            await createTestProposal();
+
+            const creationTs = await helpers.getCurrentBlockchainTimestamp();
+
+            await helpers.moveAtTimestamp(creationTs + warmUpDuration + 1);
+
+            await governance.connect(user).castVote(1, false);
+            await governance.connect(voter1).castVote(1, true);
+            await governance.connect(voter2).castVote(1, true);
+            await governance.connect(voter3).castVote(1, true);
+
+            await helpers.moveAtTimestamp(creationTs + warmUpDuration + activeDuration + 1);
+            await governance.queue(1);
+
+            return creationTs;
+        }
+
+
+        it('fails if user does not voting power above threshold', async function () {
+            await prepareProposalForCancellation();
+
+            const somebody = (await ethers.getSigners())[5];
+            await expect(governance.connect(somebody).startCancellationProposal(1))
+                .to.be.revertedWith('User must own at least 1%');
+
+            await barn.setVotingPower(await somebody.getAddress(), amount);
+
+            await expect(governance.connect(somebody).startCancellationProposal(1))
+                .to.not.be.reverted;
+        });
+
+        describe('voting', function () {
+            it('reverts for invalid proposal id', async function () {
+                await expect(governance.voteCancellationProposal(1, true))
+                    .to.be.revertedWith('invalid proposal id');
+            });
+
+            it('reverts if cancellation proposal is not created', async function () {
+                await setupEnv();
+                await createTestProposal();
+
+                await expect(governance.connect(voter1).voteCancellationProposal(1, true))
+                    .to.be.revertedWith('Cancel Proposal not active');
+            });
+
+            it('reverts if cancellation proposal expired', async function () {
+                const creationTs = await prepareProposalForCancellation();
+                await governance.connect(user).startCancellationProposal(1);
+
+                await expect(governance.connect(voter1).voteCancellationProposal(1, true))
+                    .to.not.be.reverted;
+
+                await moveAtTimestamp(creationTs + warmUpDuration + activeDuration + queueDuration + 1);
+
+                await expect(governance.connect(voter2).voteCancellationProposal(1, true))
+                    .to.be.revertedWith('Cancel Proposal not active');
+            });
+
+            it('reverts if user tries to double vote', async function () {
+                await prepareProposalForCancellation();
+                await governance.connect(user).startCancellationProposal(1);
+
+                await expect(governance.connect(voter1).voteCancellationProposal(1, true))
+                    .to.not.be.reverted;
+                await expect(governance.connect(voter1).voteCancellationProposal(1, true))
+                    .to.be.revertedWith('Already voted this option');
+            });
+
+            it('updates the amount of votes', async function () {
+                await prepareProposalForCancellation();
+                await governance.connect(user).startCancellationProposal(1);
+
+                await governance.connect(voter1).voteCancellationProposal(1, true);
+                expect((await governance.cancellationProposals(1)).forVotes).to.equal(amount.div(20));
+
+                await governance.connect(voter2).voteCancellationProposal(1, false);
+                expect((await governance.cancellationProposals(1)).forVotes).to.equal(amount.div(20));
+                expect((await governance.cancellationProposals(1)).againstVotes).to.equal(amount.div(5));
+            });
+
+            it('allows user to change vote', async function () {
+                await prepareProposalForCancellation();
+                await governance.connect(user).startCancellationProposal(1);
+
+                await governance.connect(voter1).voteCancellationProposal(1, true);
+                expect((await governance.cancellationProposals(1)).forVotes).to.equal(amount.div(20));
+                expect((await governance.cancellationProposals(1)).againstVotes).to.equal(0);
+
+                await expect(governance.connect(voter1).voteCancellationProposal(1, false))
+                    .to.not.be.reverted;
+                expect((await governance.cancellationProposals(1)).forVotes).to.equal(0);
+                expect((await governance.cancellationProposals(1)).againstVotes).to.equal(amount.div(20));
+            });
+
+            it('changes initial proposal state to cancelled if accepted', async function () {
+                const createTs = await prepareProposalForCancellation();
+                await governance.connect(user).startCancellationProposal(1);
+
+                await governance.connect(user).voteCancellationProposal(1, true);
+                await governance.connect(voter1).voteCancellationProposal(1, true);
+                await governance.connect(voter2).voteCancellationProposal(1, true);
+                await governance.connect(voter3).voteCancellationProposal(1, true);
+
+                expect(await governance.state(1)).to.equal(ProposalState.Queued);
+
+                await moveAtTimestamp(createTs + warmUpDuration + activeDuration + queueDuration + 1);
+
+                expect(await governance.state(1)).to.equal(ProposalState.Canceled);
+                await expect(governance.execute(1)).to.be.revertedWith('Cannot be executed');
+            });
+
+            it('does not change initial proposal state if not accepted', async function () {
+                const createTs = await prepareProposalForCancellation();
+                await governance.connect(user).startCancellationProposal(1);
+
+                await governance.connect(voter1).voteCancellationProposal(1, true);
+                await governance.connect(voter2).voteCancellationProposal(1, false);
+                await governance.connect(voter3).voteCancellationProposal(1, false);
+
+                expect(await governance.state(1)).to.equal(ProposalState.Queued);
+
+                await moveAtTimestamp(createTs + warmUpDuration + activeDuration + queueDuration + 1);
+
+                expect(await governance.state(1)).to.equal(ProposalState.Grace);
+            });
+        });
+
+        describe('executeCancellationProposal', function () {
+            it('reverts if proposal state is not canceled', async function () {
+                await setupEnv();
+                await createTestProposal();
+
+                await expect(governance.executeCancellationProposal(1))
+                    .to.be.revertedWith('Cannot be executed');
+            });
+
+            it('reverts if cancellation proposal failed', async function () {
+                const createTs = await prepareProposalForCancellation();
+                await governance.connect(user).startCancellationProposal(1);
+
+                await governance.connect(voter1).voteCancellationProposal(1, true);
+                await governance.connect(voter2).voteCancellationProposal(1, false);
+                await governance.connect(voter3).voteCancellationProposal(1, false);
+
+                await moveAtTimestamp(createTs + warmUpDuration + activeDuration + queueDuration + 1);
+
+                await expect(governance.executeCancellationProposal(1))
+                    .to.be.revertedWith('Cannot be executed');
+            });
+
+            it('works if cancellation proposal was accepted', async function () {
+                const createTs = await prepareProposalForCancellation();
+                await governance.connect(user).startCancellationProposal(1);
+
+                await governance.connect(user).voteCancellationProposal(1, true);
+                await governance.connect(voter1).voteCancellationProposal(1, true);
+                await governance.connect(voter2).voteCancellationProposal(1, true);
+                await governance.connect(voter3).voteCancellationProposal(1, true);
+
+                await moveAtTimestamp(createTs + warmUpDuration + activeDuration + queueDuration + 1);
+
+                await expect(governance.executeCancellationProposal(1)).to.not.be.reverted;
+                expect((await governance.proposals(1)).canceled).to.equal(true);
+            });
+        });
+    });
+
+    async function takeSnapshot () {
+        return await ethers.provider.send('evm_snapshot', []);
+    }
+
+    async function revertEVM (snapshot: any) {
+        await ethers.provider.send('evm_revert', [snapshot]);
+    }
+
     async function setupEnv () {
         await barn.setBondStaked(amount);
         await barn.setVotingPower(userAddress, amount.div(5));
