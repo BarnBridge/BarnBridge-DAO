@@ -720,6 +720,48 @@ describe('Governance', function () {
             });
         });
 
+        describe('cancel vote', function () {
+            it('reverts if cancellation proposal is not created', async function () {
+                await setupEnv();
+                await createTestProposal();
+
+                await expect(governance.connect(voter1).cancelVoteCancellationProposal(1))
+                    .to.be.revertedWith('Cancel Proposal not active');
+            });
+
+            it('reverts if cancellation proposal expired', async function () {
+                const creationTs = await prepareProposalForCancellation();
+                await governance.connect(user).startCancellationProposal(1);
+                await moveAtTimestamp(creationTs + warmUpDuration + activeDuration + queueDuration + 1);
+
+                await expect(governance.connect(voter1).cancelVoteCancellationProposal(1))
+                    .to.be.revertedWith('Cancel Proposal not active');
+            });
+
+            it('reverts if user tries to cancel vote if not voted', async function () {
+                await prepareProposalForCancellation();
+                await governance.connect(user).startCancellationProposal(1);
+
+                await expect(governance.connect(voter1).cancelVoteCancellationProposal(1))
+                    .to.be.revertedWith('Cannot cancel if not voted yet');
+            });
+
+            it('allows users to cancel their votes', async function () {
+                await prepareProposalForCancellation();
+                await governance.connect(user).startCancellationProposal(1);
+                await governance.connect(voter1).voteCancellationProposal(1, true);
+
+                await expect(governance.connect(voter1).cancelVoteCancellationProposal(1))
+                    .to.not.be.reverted;
+                const cp = await governance.cancellationProposals(1);
+                expect(cp.forVotes).to.equal(0);
+                expect(cp.againstVotes).to.equal(0);
+
+                await expect(governance.connect(voter1).voteCancellationProposal(1, true))
+                    .to.not.be.reverted;
+            });
+        });
+
         describe('executeCancellationProposal', function () {
             it('reverts if proposal state is not canceled', async function () {
                 await setupEnv();

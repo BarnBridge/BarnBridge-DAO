@@ -31,6 +31,7 @@ contract Governance is Bridge {
     }
 
     struct CancellationProposal {
+        address creator;
         uint256 createTime;
 
         uint256 forVotes;
@@ -91,6 +92,10 @@ contract Governance is Bridge {
     event ProposalQueued(uint256 indexed proposalId);
     event ProposalExecuted(uint256 indexed proposalId);
     event ProposalCanceled(uint256 indexed proposalId);
+    event CancellationProposalStarted(uint256 indexed proposalId);
+    event CancellationProposalExecuted(uint256 indexed proposalId);
+    event CancellationProposalVote(uint256 indexed proposalId, address indexed user, bool support, uint256 power);
+    event CancellationProposalVoteCancelled(uint256 indexed proposalId, address indexed user);
 
     // executed only once.
     function initialize(address barnAddr) public {
@@ -177,20 +182,6 @@ contract Governance is Bridge {
         emit ProposalQueued(proposalId);
     }
 
-    function executeCancellationProposal(uint256 proposalId) public {
-        require(state(proposalId) == ProposalState.Canceled, "Cannot be executed");
-
-        Proposal storage proposal = proposals[proposalId];
-
-        require(proposal.canceled == false, "Cannot be executed");
-
-        proposal.canceled = true;
-
-        for (uint256 i = 0; i < proposal.targets.length; i++) {
-            cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
-        }
-    }
-
     function execute(uint256 proposalId) public payable {
         require(_canBeExecuted(proposalId), "Cannot be executed");
 
@@ -224,9 +215,31 @@ contract Governance is Bridge {
             barn.votingPowerAtTs(msg.sender, block.timestamp - 1) >= _getCreationThreshold(),
             "User must own at least 1%"
         );
-        require(cancellationProposals[proposalId].createTime == 0, "Cancellation proposal already exists");
 
-        cancellationProposals[proposalId].createTime = block.timestamp;
+        CancellationProposal storage cp = cancellationProposals[proposalId];
+
+        require(cp.createTime == 0, "Cancellation proposal already exists");
+
+        cp.createTime = block.timestamp;
+        cp.creator = msg.sender;
+
+        emit CancellationProposalStarted(proposalId);
+    }
+
+    function executeCancellationProposal(uint256 proposalId) public {
+        require(state(proposalId) == ProposalState.Canceled, "Cannot be executed");
+
+        Proposal storage proposal = proposals[proposalId];
+
+        require(proposal.canceled == false, "Cannot be executed");
+
+        proposal.canceled = true;
+
+        for (uint256 i = 0; i < proposal.targets.length; i++) {
+            cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+        }
+
+        emit CancellationProposalExecuted(proposalId);
     }
 
     function voteCancellationProposal(uint256 proposalId, bool support) public {
@@ -265,6 +278,36 @@ contract Governance is Bridge {
         receipt.hasVoted = true;
         receipt.votes = votes;
         receipt.support = support;
+
+        emit CancellationProposalVote(proposalId, msg.sender, support, votes);
+    }
+
+    function cancelVoteCancellationProposal(uint256 proposalId) public {
+        require(0 < proposalId && proposalId <= lastProposalId, "invalid proposal id");
+
+        CancellationProposal storage cancellationProposal = cancellationProposals[proposalId];
+        Receipt storage receipt = cancellationProposal.receipts[msg.sender];
+
+        require(
+            state(proposalId) == ProposalState.Queued && cancellationProposal.createTime != 0,
+            "Cancel Proposal not active"
+        );
+
+        uint256 votes = barn.votingPowerAtTs(msg.sender, cancellationProposal.createTime - 1);
+
+        require(receipt.hasVoted, "Cannot cancel if not voted yet");
+
+        if (receipt.support) {
+            cancellationProposal.forVotes = cancellationProposal.forVotes.sub(votes);
+        } else {
+            cancellationProposal.againstVotes = cancellationProposal.againstVotes.sub(votes);
+        }
+
+        receipt.hasVoted = false;
+        receipt.votes = 0;
+        receipt.support = false;
+
+        emit CancellationProposalVoteCancelled(proposalId, msg.sender);
     }
 
     function castVote(uint256 proposalId, bool support) public {
