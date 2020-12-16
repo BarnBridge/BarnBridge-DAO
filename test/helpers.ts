@@ -1,5 +1,5 @@
 import { ethers } from 'hardhat';
-import { ContractFactory } from 'ethers';
+import { BigNumber, ContractFactory } from 'ethers';
 import { BarnMock, Governance } from '../typechain';
 
 enum ProposalState {
@@ -16,6 +16,7 @@ enum ProposalState {
 }
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const tenPow18 = BigNumber.from(10).pow(18);
 
 export async function deployBarn (): Promise<BarnMock> {
     const BarnMock: ContractFactory = await ethers.getContractFactory('BarnMock');

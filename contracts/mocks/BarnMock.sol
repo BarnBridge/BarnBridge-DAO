@@ -4,8 +4,8 @@ pragma solidity ^0.7.1;
 import "../interfaces/IBarn.sol";
 
 contract BarnMock {
-    uint private _circulatingSupply;
-    mapping(address => uint) private _votingPowerAtTs;
+    uint256 private _bondStaked;
+    mapping(address => uint256) private _votingPowerAtTs;
     bool public lockCreatorBalanceHasBeenCalled;
     bool public withdrawHasBeenCalled;
 
@@ -14,16 +14,23 @@ contract BarnMock {
         return _votingPowerAtTs[user];
     }
 
-    // bondCirculatingSupply returns the current circulating supply of BOND
-    function bondCirculatingSupply() external view returns (uint256) {
-        return _circulatingSupply;
+    function votingPower(address user) external view returns (uint256) {
+        return _votingPowerAtTs[user];
     }
 
-    function setBondCirculatingSupply(uint val) public {
-        _circulatingSupply = val;
+    function bondStaked() external view returns (uint256) {
+        return _bondStaked;
     }
 
-    function setVotingPower(address user, uint val) public {
+    function bondStakedAtTs(uint256 ts) public view returns (uint256) {
+        return _bondStaked;
+    }
+
+    function setBondStaked(uint256 val) public {
+        _bondStaked = val;
+    }
+
+    function setVotingPower(address user, uint256 val) public {
         _votingPowerAtTs[user] = val;
     }
 

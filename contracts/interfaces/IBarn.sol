@@ -25,9 +25,6 @@ interface IBarn {
     // stopDelegate allows a user to take back the delegated voting power
     function stopDelegate() external;
 
-    // lock the balance of a proposal creator until the voting ends; only callable by DAO
-    function lockCreatorBalance(address user, uint256 timestamp) external;
-
     // balanceOf returns the current BOND balance of a user (bonus not included)
     function balanceOf(address user) external view returns (uint256);
 
@@ -65,7 +62,4 @@ interface IBarn {
 
     // userDidDelegate returns the address to which a user delegated their voting power; address(0) if not delegated
     function userDelegatedTo(address user) external view returns (address);
-
-    // bondCirculatingSupply returns the current circulating supply of BOND
-    function bondCirculatingSupply() external view returns (uint256);
 }
