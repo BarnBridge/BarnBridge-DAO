@@ -38,6 +38,7 @@ contract Governance is Bridge {
         // proposal description
         string description;
         string title;
+
         // proposal technical details
         // ordered list of target addresses to be made
         address[] targets;
@@ -54,25 +55,18 @@ contract Governance is Bridge {
         uint startTime;
 
         // votes status
-
         // Minimum amount of vBond votes for this proposal to be considered
         uint quorum;
-
         // The timestamp that the proposal will be available for execution, set once the vote succeeds
         uint eta;
-
         // Current number of votes in favor of this proposal
         uint forVotes;
-
         // Current number of votes in opposition to this proposal
         uint againstVotes;
 
-
-        // canceled by owner or Guardian
-        // Flag marking whether the proposal has been canceled
         bool canceled;
-        // flag for proposal was executed
         bool executed;
+
         // Receipts of ballots for the entire set of voters
         mapping(address => Receipt) receipts;
     }
@@ -81,22 +75,20 @@ contract Governance is Bridge {
     mapping(uint => Proposal) public proposals;
     mapping(address => uint) public latestProposalIds;
     IBarn barn;
-    address public guardian;
     bool isInitialized;
 
     event ProposalCreated(uint indexed proposalId);
     event VotingStarted(uint indexed proposalId);
-    event Vote(uint indexed proposalId, address indexed user, bool support);
+    event Vote(uint indexed proposalId, address indexed user, bool support, uint256 power);
     event VoteCanceled(uint indexed proposalId, address indexed user);
     event ProposalQueued(uint indexed proposalId);
     event ProposalExecuted(uint indexed proposalId);
     event ProposalCanceled(uint indexed proposalId);
 
     // executed only once.
-    function initialize(address barnAddr, address guardianAddress) public {
+    function initialize(address barnAddr) public {
         require(isInitialized == false, 'Contract already initialized.');
         barn = IBarn(barnAddr);
-        guardian = guardianAddress;
         isInitialized = true;
     }
 
@@ -132,9 +124,6 @@ contract Governance is Bridge {
         lastProposalId = newProposalId;
         latestProposalIds[msg.sender] = newProposalId;
 
-        // lock user tokens
-        barn.lockCreatorBalance(msg.sender, block.timestamp + WARM_UP);
-
         emit ProposalCreated(newProposalId);
 
         return newProposalId;
@@ -157,22 +146,24 @@ contract Governance is Bridge {
 
     function queue(uint proposalId) public {
         require(state(proposalId) == ProposalState.Accepted, "Proposal can only be queued if it is succeeded");
+
         Proposal storage proposal = proposals[proposalId];
         require(proposal.canceled == false, "Cannot queue a canceled proposal");
 
         uint eta = proposal.startTime + ACTIVE + QUEUE;
+        proposal.eta = eta;
 
         for (uint i = 0; i < proposal.targets.length; i++) {
-            require(!queuedTransactions[keccak256(abi.encode(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta))], "proposal action already queued at eta");
+            require(!queuedTransactions[_getTxHash(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta)], "proposal action already queued at eta");
             queueTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
         }
-        proposal.eta = eta;
 
         emit ProposalQueued(proposalId);
     }
 
     function execute(uint proposalId) public payable {
         require(_canBeExecuted(proposalId), "Cannot be executed");
+
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
 
@@ -190,7 +181,7 @@ contract Governance is Bridge {
         require(state != ProposalState.Expired, "Cannot cancel expired proposal");
 
         Proposal storage proposal = proposals[proposalId];
-        require(_canCancel(proposalId), "Only the proposal creator or guardian can cancel a proposal");
+        require(_canCancel(proposalId), "Only the proposal creator can cancel a proposal");
         proposal.canceled = true;
 
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -200,18 +191,7 @@ contract Governance is Bridge {
         emit ProposalCanceled(proposalId);
     }
 
-    function abdicate() external {
-        require(msg.sender == guardian, 'Must be gov guardian');
-        _abdicate();
-    }
-
-    function anoint(address newGuardian) public {
-        require(msg.sender == guardian, 'Only the gov guardian');
-        _anoint(newGuardian);
-    }
-
     // views
-
     function state(uint proposalId) public view returns (ProposalState) {
         require(lastProposalId >= proposalId && proposalId > 0, "invalid proposal id");
         Proposal storage proposal = proposals[proposalId];
@@ -241,7 +221,7 @@ contract Governance is Bridge {
             return ProposalState.Accepted;
         }
 
-        // vote is executed --> can be forced by guardian
+        // vote is executed
         if (proposal.executed == true) {
             return ProposalState.Executed;
         }
@@ -270,19 +250,10 @@ contract Governance is Bridge {
 
     // internal
 
-    function _abdicate() internal {
-        guardian = address(0);
-    }
-
-    // callable only by a proposal
-    function _anoint(address newGuardian) internal {
-        guardian = newGuardian;
-    }
-
     function _startVote(uint proposalId) internal {
         require(state(proposalId) == ProposalState.ReadyForActivation, 'Proposal needs to be in RedyForActivation state');
         Proposal storage proposal = proposals[proposalId];
-        proposal.startTime = block.timestamp;
+        proposal.startTime = block.timestamp - 1;
         proposal.quorum = (barn.bondCirculatingSupply() * MINIMUM_QUORUM) / 100;
 
         emit VotingStarted(proposalId);
@@ -316,7 +287,7 @@ contract Governance is Bridge {
         receipt.votes = votes;
         receipt.support = support;
 
-        emit Vote(proposalId, voter, support);
+        emit Vote(proposalId, voter, support, votes);
     }
 
     function _cancelVote(address voter, uint proposalId) internal {
@@ -342,15 +313,14 @@ contract Governance is Bridge {
     function _canCancel(uint proposalId) internal view returns (bool){
         Proposal storage proposal = proposals[proposalId];
 
-        if (msg.sender == proposal.proposer || guardian == msg.sender) {
+        if (msg.sender == proposal.proposer) {
             return true;
         }
         return false;
     }
 
     function _canBeExecuted(uint proposalId) internal view returns (bool) {
-        return (msg.sender == guardian && state(proposalId) == ProposalState.Queued
-        || state(proposalId) == ProposalState.Grace);
+        return state(proposalId) == ProposalState.Grace;
     }
 
     // pure functions
@@ -366,9 +336,4 @@ contract Governance is Bridge {
         require(b <= a, "subtraction underflow");
         return a - b;
     }
-
-    function isGuardian() internal view override returns (bool) {
-        return msg.sender == guardian;
-    }
-
 }

@@ -9,11 +9,6 @@ contract BarnMock {
     bool public lockCreatorBalanceHasBeenCalled;
     bool public withdrawHasBeenCalled;
 
-    // lock the balance of a proposal creator until the voting ends; only callable by DAO
-    function lockCreatorBalance(address user, uint256 timestamp) external {
-        lockCreatorBalanceHasBeenCalled = true;
-    }
-
     // votingPowerAtTs returns the voting power (bonus included) + delegated voting power for a user at a point in time
     function votingPowerAtTs(address user, uint256 timestamp) external view returns (uint256){
         return _votingPowerAtTs[user];
