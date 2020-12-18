@@ -43,6 +43,12 @@ const cfg: HardhatUserConfig = {
     gasReporter: {
         enabled: (process.env.REPORT_GAS) ? true : false,
     },
+
+    contractSizer: {
+        alphaSort: true,
+        runOnCompile: true,
+        disambiguatePaths: false,
+    },
 };
 
 export default cfg;
