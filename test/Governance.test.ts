@@ -94,7 +94,7 @@ describe('Governance', function () {
 
             await expect(governance.connect(user)
                 .propose(targets, values, signatures, callDatas, 'description', 'title'))
-                .to.be.revertedWith('User must own at least 1%');
+                .to.be.revertedWith('Creation threshold not met');
             await barn.setVotingPower(userAddress, amount.div(10));
             await expect(governance.connect(user)
                 .propose(targetsMismatch, values, signatures, callDatas, 'description', 'title'))
@@ -616,7 +616,7 @@ describe('Governance', function () {
 
             const somebody = (await ethers.getSigners())[5];
             await expect(governance.connect(somebody).startCancellationProposal(1))
-                .to.be.revertedWith('User must own at least 1%');
+                .to.be.revertedWith('Creation threshold not met');
 
             await barn.setVotingPower(await somebody.getAddress(), amount);
 
