@@ -5,9 +5,8 @@ import '@nomiclabs/hardhat-etherscan';
 import 'hardhat-abi-exporter';
 import 'hardhat-typechain';
 import 'solidity-coverage';
-
-// no support yet for the following
-// require('buidler-gas-reporter')
+import 'hardhat-gas-reporter';
+import 'hardhat-contract-sizer';
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -22,6 +21,15 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
 // Some of the settings should be defined in `./config.js`.
 // Go to https://hardhat.org/config/ for the syntax.
 const cfg: HardhatUserConfig = {
+    solidity: {
+        version: '0.7.6',
+        settings: {
+            optimizer: {
+                enabled: true,
+                runs: 9999,
+            },
+        },
+    },
     defaultNetwork: 'hardhat',
 
     networks: config.networks,
@@ -30,6 +38,10 @@ const cfg: HardhatUserConfig = {
     abiExporter: {
         only: ['Governance'],
         clear: true,
+    },
+
+    gasReporter: {
+        enabled: (process.env.REPORT_GAS) ? true : false,
     },
 };
 
