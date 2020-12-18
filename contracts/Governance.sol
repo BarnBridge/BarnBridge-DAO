@@ -128,7 +128,7 @@ contract Governance is Bridge {
 
         require(
             barn.votingPowerAtTs(msg.sender, block.timestamp - 1) >= _getCreationThreshold(),
-            "User must own at least 1%"
+            "Creation threshold not met"
         );
         require(
             targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length,
@@ -213,7 +213,7 @@ contract Governance is Bridge {
         require(state(proposalId) == ProposalState.Queued, "Proposal must be in queue");
         require(
             barn.votingPowerAtTs(msg.sender, block.timestamp - 1) >= _getCreationThreshold(),
-            "User must own at least 1%"
+            "Creation threshold not met"
         );
 
         CancellationProposal storage cp = cancellationProposals[proposalId];
