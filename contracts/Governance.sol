@@ -89,11 +89,11 @@ contract Governance is Bridge {
     event ProposalCreated(uint256 indexed proposalId);
     event Vote(uint256 indexed proposalId, address indexed user, bool support, uint256 power);
     event VoteCanceled(uint256 indexed proposalId, address indexed user);
-    event ProposalQueued(uint256 indexed proposalId, address indexed caller, uint256 eta);
-    event ProposalExecuted(uint256 indexed proposalId, address indexed caller);
-    event ProposalCanceled(uint256 indexed proposalId, address indexed caller);
-    event CancellationProposalStarted(uint256 indexed proposalId, address indexed caller);
-    event CancellationProposalExecuted(uint256 indexed proposalId, address indexed caller);
+    event ProposalQueued(uint256 indexed proposalId, address caller, uint256 eta);
+    event ProposalExecuted(uint256 indexed proposalId, address caller);
+    event ProposalCanceled(uint256 indexed proposalId, address caller);
+    event CancellationProposalStarted(uint256 indexed proposalId, address caller);
+    event CancellationProposalExecuted(uint256 indexed proposalId, address caller);
     event CancellationProposalVote(uint256 indexed proposalId, address indexed user, bool support, uint256 power);
     event CancellationProposalVoteCancelled(uint256 indexed proposalId, address indexed user);
 
