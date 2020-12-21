@@ -89,11 +89,11 @@ contract Governance is Bridge {
     event ProposalCreated(uint256 indexed proposalId);
     event Vote(uint256 indexed proposalId, address indexed user, bool support, uint256 power);
     event VoteCanceled(uint256 indexed proposalId, address indexed user);
-    event ProposalQueued(uint256 indexed proposalId);
-    event ProposalExecuted(uint256 indexed proposalId);
-    event ProposalCanceled(uint256 indexed proposalId);
-    event CancellationProposalStarted(uint256 indexed proposalId);
-    event CancellationProposalExecuted(uint256 indexed proposalId);
+    event ProposalQueued(uint256 indexed proposalId, address caller, uint256 eta);
+    event ProposalExecuted(uint256 indexed proposalId, address caller);
+    event ProposalCanceled(uint256 indexed proposalId, address caller);
+    event CancellationProposalStarted(uint256 indexed proposalId, address caller);
+    event CancellationProposalExecuted(uint256 indexed proposalId, address caller);
     event CancellationProposalVote(uint256 indexed proposalId, address indexed user, bool support, uint256 power);
     event CancellationProposalVoteCancelled(uint256 indexed proposalId, address indexed user);
 
@@ -179,7 +179,7 @@ contract Governance is Bridge {
             queueTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
         }
 
-        emit ProposalQueued(proposalId);
+        emit ProposalQueued(proposalId, msg.sender, eta);
     }
 
     function execute(uint256 proposalId) public payable {
@@ -192,7 +192,7 @@ contract Governance is Bridge {
             executeTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
 
-        emit ProposalExecuted(proposalId);
+        emit ProposalExecuted(proposalId, msg.sender);
     }
 
     function cancelProposal(uint256 proposalId) public {
@@ -206,7 +206,7 @@ contract Governance is Bridge {
             cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
 
-        emit ProposalCanceled(proposalId);
+        emit ProposalCanceled(proposalId, msg.sender);
     }
 
     function startCancellationProposal(uint256 proposalId) public {
@@ -223,7 +223,7 @@ contract Governance is Bridge {
         cp.createTime = block.timestamp;
         cp.creator = msg.sender;
 
-        emit CancellationProposalStarted(proposalId);
+        emit CancellationProposalStarted(proposalId, msg.sender);
     }
 
     function executeCancellationProposal(uint256 proposalId) public {
@@ -239,7 +239,7 @@ contract Governance is Bridge {
             cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
 
-        emit CancellationProposalExecuted(proposalId);
+        emit CancellationProposalExecuted(proposalId, msg.sender);
     }
 
     function voteCancellationProposal(uint256 proposalId, bool support) public {
