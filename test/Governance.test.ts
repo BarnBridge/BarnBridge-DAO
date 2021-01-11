@@ -4,6 +4,7 @@ import * as helpers from './helpers';
 import { moveAtTimestamp } from './helpers';
 import { expect } from 'chai';
 import { BarnMock, Governance } from '../typechain';
+import exp from 'constants';
 
 describe('Governance', function () {
 
@@ -799,6 +800,174 @@ describe('Governance', function () {
                 await expect(governance.executeCancellationProposal(1)).to.not.be.reverted;
                 expect((await governance.proposals(1)).canceled).to.equal(true);
             });
+        });
+    });
+
+    describe('stored parameters', () => {
+        it('stores parameters on proposal on creation', async () => {
+            await setupEnv();
+            await createTestProposal();
+
+            const parameters = {
+                warmUpDuration: await governance.warmUpDuration(),
+                activeDuration: await governance.activeDuration(),
+                queueDuration: await governance.queueDuration(),
+                gracePeriodDuration: await governance.gracePeriodDuration(),
+                acceptanceThreshold: await governance.acceptanceThreshold(),
+                minQuorum: await governance.minQuorum(),
+            };
+
+            const actualParameters = await governance.getProposalParameters(1);
+
+            for (const key of Object.keys(parameters)) {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                expect(actualParameters[key].toString()).to.equal(parameters[key].toString());
+            }
+        });
+
+        it('parameters changed mid-flight do not affect running proposals', async () => {
+            await barn.setBondStaked(amount);
+            await barn.setVotingPower(userAddress, amount.div(2));
+            await barn.setVotingPower(await voter1.getAddress(), amount.div(2));
+
+            const parameters = {
+                warmUpDuration: await governance.warmUpDuration(),
+                activeDuration: await governance.activeDuration(),
+                queueDuration: await governance.queueDuration(),
+                gracePeriodDuration: await governance.gracePeriodDuration(),
+                acceptanceThreshold: await governance.acceptanceThreshold(),
+                minQuorum: await governance.minQuorum(),
+            };
+
+            const targets = [
+                governance.address,
+                governance.address,
+                governance.address,
+                governance.address,
+                governance.address,
+                governance.address,
+            ];
+            const values = [0, 0, 0, 0, 0, 0];
+            const signatures = [
+                'setWarmUpDuration(uint256)',
+                'setActiveDuration(uint256)',
+                'setQueueDuration(uint256)',
+                'setGracePeriodDuration(uint256)',
+                'setAcceptanceThreshold(uint256)',
+                'setMinQuorum(uint256)',
+            ];
+
+            const period = (await governance.gracePeriodDuration()).toNumber() / 2;
+            const callDatas = [
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [warmUpDuration * 2]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [period]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [51]),
+                ejs.utils.defaultAbiCoder.encode(['uint256'], [51]),
+            ];
+
+            await governance.connect(voter1)
+                .propose(targets, values, signatures, callDatas, 'Change Periods', 'Periods');
+
+            const ts = await helpers.getCurrentBlockchainTimestamp();
+
+            await moveAtTimestamp(ts + warmUpDuration + 1);
+
+            let proposal = await governance.proposals(1);
+            await governance.connect(user).castVote(1, true);
+
+            // when there's only 2 days (active) + 4 days (queue) left on the proposal that changes the parameters
+            // create a new proposal and and make sure that its parameters are not changed
+            await moveAtTimestamp(ts + warmUpDuration + activeDuration / 2);
+            await createTestProposal();
+
+            await moveAtTimestamp(proposal.createTime.toNumber() + warmUpDuration + activeDuration + 1);
+            await governance.queue(1);
+
+            proposal = await governance.proposals(1);
+            await moveAtTimestamp(proposal.eta.toNumber() + 1);
+
+            expect(await governance.state(2)).to.be.equal(ProposalState.Active);
+
+            await governance.execute(1);
+
+            expect(await governance.state(1)).to.be.equal(ProposalState.Executed);
+
+            // changing the warmUpDuration to 2 * the initial (8 days) means that the newer proposal would be
+            // pushed back into the WarmUp state if the parameters would not be stored on the proposal
+            expect(await governance.state(2)).to.be.equal(ProposalState.Active);
+
+            const actualParameters = await governance.getProposalParameters(2);
+
+            for (const key of Object.keys(parameters)) {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                expect(actualParameters[key].toString()).to.equal(parameters[key].toString());
+            }
+
+            const proposal2 = await governance.proposals(2);
+
+            let snapshot = await takeSnapshot();
+
+            await moveAtTimestamp(proposal2.createTime.toNumber() +
+                parameters.warmUpDuration.toNumber() +
+                parameters.activeDuration.toNumber() + 1);
+            expect(await governance.state(2)).to.equal(ProposalState.Failed);
+
+            await revertEVM(snapshot);
+            snapshot = await takeSnapshot();
+
+            await governance.connect(user).castVote(2, true);
+            await governance.connect(voter1).castVote(2, false);
+            await moveAtTimestamp(proposal2.createTime.toNumber() +
+                parameters.warmUpDuration.toNumber() +
+                parameters.activeDuration.toNumber() + 1);
+            // does not meet default acceptance criteria
+            expect(await governance.state(2)).to.equal(ProposalState.Failed);
+
+            await revertEVM(snapshot);
+
+            await governance.connect(user).castVote(2, true);
+            await moveAtTimestamp(proposal2.createTime.toNumber() +
+                parameters.warmUpDuration.toNumber() +
+                parameters.activeDuration.toNumber() + 1);
+            expect(await governance.state(2)).to.equal(ProposalState.Accepted);
+
+            await governance.queue(2);
+
+            expect(await governance.state(2)).to.equal(ProposalState.Queued);
+
+            await moveAtTimestamp(proposal2.createTime.toNumber() +
+                parameters.warmUpDuration.toNumber() +
+                parameters.activeDuration.toNumber() +
+                parameters.queueDuration.toNumber() + 1);
+
+            expect(await governance.state(2)).to.equal(ProposalState.Grace);
+
+            await expect(governance.execute(2)).to.not.be.reverted;
+
+            // check that the new parameters are being used after the proposal that changed them is executed
+            await createTestProposal();
+            const ts1 = await helpers.getCurrentBlockchainTimestamp();
+            const actualParameters2 = await governance.getProposalParameters(3);
+
+            expect(actualParameters2.warmUpDuration).to.equal(warmUpDuration * 2);
+            expect(actualParameters2.activeDuration).to.equal(period);
+            expect(actualParameters2.queueDuration).to.equal(period);
+            expect(actualParameters2.gracePeriodDuration).to.equal(period);
+            expect(actualParameters2.acceptanceThreshold).to.equal(51);
+            expect(actualParameters2.minQuorum).to.equal(51);
+
+            await moveAtTimestamp(ts1 + warmUpDuration + 1);
+            expect(await governance.state(3)).to.equal(ProposalState.WarmUp);
+
+            await moveAtTimestamp(ts1 + warmUpDuration * 2 + 1);
+            expect(await governance.state(3)).to.equal(ProposalState.Active);
+
+            await moveAtTimestamp(ts1 + warmUpDuration * 2 + period + 1);
+            expect(await governance.state(3)).to.equal(ProposalState.Failed);
         });
     });
 

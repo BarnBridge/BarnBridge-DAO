@@ -40,6 +40,15 @@ contract Governance is Bridge {
         mapping(address => Receipt) receipts;
     }
 
+    struct ProposalParameters {
+        uint256 warmUpDuration;
+        uint256 activeDuration;
+        uint256 queueDuration;
+        uint256 gracePeriodDuration;
+        uint256 acceptanceThreshold;
+        uint256 minQuorum;
+    }
+
     struct Proposal {
         // proposal identifiers
         // unique id
@@ -76,6 +85,8 @@ contract Governance is Bridge {
 
         // Receipts of ballots for the entire set of voters
         mapping(address => Receipt) receipts;
+
+        ProposalParameters parameters;
     }
 
     uint256 public lastProposalId;
@@ -154,6 +165,12 @@ contract Governance is Bridge {
         newProposal.signatures = signatures;
         newProposal.calldatas = calldatas;
         newProposal.createTime = block.timestamp - 1;
+        newProposal.parameters.warmUpDuration = warmUpDuration;
+        newProposal.parameters.activeDuration = activeDuration;
+        newProposal.parameters.queueDuration = queueDuration;
+        newProposal.parameters.gracePeriodDuration = gracePeriodDuration;
+        newProposal.parameters.acceptanceThreshold = acceptanceThreshold;
+        newProposal.parameters.minQuorum = minQuorum;
 
         lastProposalId = newProposalId;
         latestProposalIds[msg.sender] = newProposalId;
@@ -167,7 +184,7 @@ contract Governance is Bridge {
         require(state(proposalId) == ProposalState.Accepted, "Proposal can only be queued if it is succeeded");
 
         Proposal storage proposal = proposals[proposalId];
-        uint256 eta = proposal.createTime + warmUpDuration + activeDuration + queueDuration;
+        uint256 eta = proposal.createTime + proposal.parameters.warmUpDuration + proposal.parameters.activeDuration + proposal.parameters.queueDuration;
         proposal.eta = eta;
 
         for (uint256 i = 0; i < proposal.targets.length; i++) {
@@ -380,11 +397,11 @@ contract Governance is Bridge {
             return ProposalState.Executed;
         }
 
-        if (block.timestamp <= proposal.createTime + warmUpDuration) {
+        if (block.timestamp <= proposal.createTime + proposal.parameters.warmUpDuration) {
             return ProposalState.WarmUp;
         }
 
-        if (block.timestamp <= proposal.createTime + warmUpDuration + activeDuration) {
+        if (block.timestamp <= proposal.createTime + proposal.parameters.warmUpDuration + proposal.parameters.activeDuration) {
             return ProposalState.Active;
         }
 
@@ -401,7 +418,7 @@ contract Governance is Bridge {
             return ProposalState.Queued;
         }
 
-        if (block.timestamp <= proposal.eta + gracePeriodDuration) {
+        if (block.timestamp <= proposal.eta + proposal.parameters.gracePeriodDuration) {
             return ProposalState.Grace;
         }
 
@@ -410,6 +427,10 @@ contract Governance is Bridge {
 
     function getReceipt(uint256 proposalId, address voter) public view returns (Receipt memory) {
         return proposals[proposalId].receipts[voter];
+    }
+
+    function getProposalParameters(uint256 proposalId) public view returns (ProposalParameters memory) {
+        return proposals[proposalId].parameters;
     }
 
     function getCancellationProposalReceipt(uint256 proposalId, address voter) public view returns (Receipt memory) {
@@ -460,7 +481,7 @@ contract Governance is Bridge {
     }
 
     function _getMinForVotes(Proposal storage proposal) internal view returns (uint256) {
-        return (proposal.forVotes + proposal.againstVotes).mul(acceptanceThreshold).div(100);
+        return (proposal.forVotes + proposal.againstVotes).mul(proposal.parameters.acceptanceThreshold).div(100);
     }
 
     function _getCreationThreshold() internal view returns (uint256) {
@@ -471,11 +492,11 @@ contract Governance is Bridge {
     // If the current block's timestamp is equal to `proposal.createTime + warmUpDuration` then the state function
     // will return WarmUp as state which will prevent any vote to be cast which will gracefully avoid any flashloan attack
     function _getSnapshotTimestamp(Proposal storage proposal) internal view returns (uint256) {
-        return proposal.createTime + warmUpDuration;
+        return proposal.createTime + proposal.parameters.warmUpDuration;
     }
 
     function _getQuorum(Proposal storage proposal) internal view returns (uint256) {
-        return barn.bondStakedAtTs(_getSnapshotTimestamp(proposal)).mul(minQuorum).div(100);
+        return barn.bondStakedAtTs(_getSnapshotTimestamp(proposal)).mul(proposal.parameters.minQuorum).div(100);
     }
 
     function _proposalCancelledViaCounterProposal(uint256 proposalId) internal view returns (bool) {
@@ -486,6 +507,6 @@ contract Governance is Bridge {
             return false;
         }
 
-        return cp.forVotes >= barn.bondStaked().div(2);
+        return cp.forVotes >= barn.bondStakedAtTs(cp.createTime - 1).div(2);
     }
 }
