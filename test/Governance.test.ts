@@ -4,7 +4,6 @@ import * as helpers from './helpers';
 import { moveAtTimestamp } from './helpers';
 import { expect } from 'chai';
 import { BarnMock, Governance } from '../typechain';
-import exp from 'constants';
 
 describe('Governance', function () {
 
