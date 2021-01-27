@@ -533,7 +533,7 @@ describe('Governance', function () {
 
     describe('abrogation proposal', function () {
         it('reverts if proposal id is not valid', async function () {
-            await expect(governance.startAbrogationProposal(1, ''))
+            await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('invalid proposal id');
         });
 
@@ -544,13 +544,13 @@ describe('Governance', function () {
             const creationTs = await helpers.getCurrentBlockchainTimestamp();
 
             expect(await governance.state(1)).to.equal(ProposalState.WarmUp);
-            await expect(governance.startAbrogationProposal(1, ''))
+            await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Proposal must be in queue');
 
             await helpers.moveAtTimestamp(creationTs + warmUpDuration + 1);
 
             expect(await governance.state(1)).to.equal(ProposalState.Active);
-            await expect(governance.startAbrogationProposal(1, ''))
+            await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Proposal must be in queue');
 
             await governance.connect(user).castVote(1, false);
@@ -559,12 +559,12 @@ describe('Governance', function () {
             await governance.connect(voter3).castVote(1, true);
 
             expect(await governance.state(1)).to.equal(ProposalState.Active);
-            await expect(governance.startAbrogationProposal(1, ''))
+            await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Proposal must be in queue');
 
             await helpers.moveAtTimestamp(creationTs + warmUpDuration + activeDuration + 1);
             expect(await governance.state(1)).to.equal(ProposalState.Accepted);
-            await expect(governance.startAbrogationProposal(1, ''))
+            await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Proposal must be in queue');
 
             let snapshot = await takeSnapshot();
@@ -572,13 +572,13 @@ describe('Governance', function () {
             await governance.queue(1);
 
             expect(await governance.state(1)).to.equal(ProposalState.Queued);
-            await expect(governance.startAbrogationProposal(1, ''))
+            await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.not.be.reverted;
 
             const abrogationProposalCreationTs = await helpers.getCurrentBlockchainTimestamp();
             expect((await governance.abrogationProposals(1)).createTime).to.equal(abrogationProposalCreationTs);
 
-            await expect(governance.startAbrogationProposal(1, ''))
+            await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Abrogation proposal already exists');
 
             await revertEVM(snapshot);
@@ -586,7 +586,7 @@ describe('Governance', function () {
             snapshot = await takeSnapshot();
             await governance.connect(user).cancelProposal(1);
             expect(await governance.state(1)).to.equal(ProposalState.Canceled);
-            await expect(governance.startAbrogationProposal(1, ''))
+            await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Proposal must be in queue');
             await revertEVM(snapshot);
 
@@ -594,14 +594,14 @@ describe('Governance', function () {
 
             await helpers.moveAtTimestamp(creationTs + warmUpDuration + activeDuration + queueDuration + 1);
             expect(await governance.state(1)).to.equal(ProposalState.Grace);
-            await expect(governance.startAbrogationProposal(1, ''))
+            await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Proposal must be in queue');
 
             snapshot = await takeSnapshot();
             await governance.execute(1);
 
             expect(await governance.state(1)).to.equal(ProposalState.Executed);
-            await expect(governance.startAbrogationProposal(1, ''))
+            await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Proposal must be in queue');
 
             await revertEVM(snapshot);
@@ -609,7 +609,7 @@ describe('Governance', function () {
             await helpers.moveAtTimestamp(creationTs + warmUpDuration + activeDuration + queueDuration + gracePeriodDuration + 1);
 
             expect(await governance.state(1)).to.equal(ProposalState.Expired);
-            await expect(governance.startAbrogationProposal(1, ''))
+            await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Proposal must be in queue');
         });
 
@@ -636,12 +636,12 @@ describe('Governance', function () {
             await prepareProposalForAbrogation();
 
             const somebody = (await ethers.getSigners())[5];
-            await expect(governance.connect(somebody).startAbrogationProposal(1, ''))
+            await expect(governance.connect(somebody).startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Creation threshold not met');
 
             await barn.setVotingPower(await somebody.getAddress(), amount);
 
-            await expect(governance.connect(somebody).startAbrogationProposal(1, ''))
+            await expect(governance.connect(somebody).startAbrogationProposal(1, 'description'))
                 .to.not.be.reverted;
         });
 
@@ -661,7 +661,7 @@ describe('Governance', function () {
 
             it('reverts if abrogation proposal expired', async function () {
                 const creationTs = await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
 
                 await expect(governance.connect(voter1).abrogationProposal_castVote(1, true))
                     .to.not.be.reverted;
@@ -674,7 +674,7 @@ describe('Governance', function () {
 
             it('reverts if user does not have voting power', async function () {
                 await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
 
                 await barn.setVotingPower(await voter3.getAddress(), 0);
 
@@ -684,7 +684,7 @@ describe('Governance', function () {
 
             it('reverts if user tries to double vote', async function () {
                 await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
 
                 await expect(governance.connect(voter1).abrogationProposal_castVote(1, true))
                     .to.not.be.reverted;
@@ -694,7 +694,7 @@ describe('Governance', function () {
 
             it('updates the amount of votes', async function () {
                 await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
 
                 await governance.connect(voter1).abrogationProposal_castVote(1, true);
                 expect((await governance.abrogationProposals(1)).forVotes).to.equal(amount.div(20));
@@ -706,7 +706,7 @@ describe('Governance', function () {
 
             it('allows user to change vote', async function () {
                 await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
 
                 await governance.connect(voter1).abrogationProposal_castVote(1, true);
                 expect((await governance.abrogationProposals(1)).forVotes).to.equal(amount.div(20));
@@ -720,7 +720,7 @@ describe('Governance', function () {
 
             it('changes initial proposal state to cancelled if accepted', async function () {
                 const createTs = await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
 
                 await governance.connect(user).abrogationProposal_castVote(1, true);
                 await governance.connect(voter1).abrogationProposal_castVote(1, true);
@@ -737,7 +737,7 @@ describe('Governance', function () {
 
             it('does not change initial proposal state if not accepted', async function () {
                 const createTs = await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
 
                 await governance.connect(voter1).abrogationProposal_castVote(1, true);
                 await governance.connect(voter2).abrogationProposal_castVote(1, false);
@@ -762,7 +762,7 @@ describe('Governance', function () {
 
             it('reverts if abrogation proposal expired', async function () {
                 const creationTs = await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
                 await moveAtTimestamp(creationTs + warmUpDuration + activeDuration + queueDuration + 1);
 
                 await expect(governance.connect(voter1).abrogationProposal_cancelVote(1))
@@ -771,7 +771,7 @@ describe('Governance', function () {
 
             it('reverts if user tries to cancel vote if not voted', async function () {
                 await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
 
                 await expect(governance.connect(voter1).abrogationProposal_cancelVote(1))
                     .to.be.revertedWith('Cannot cancel if not voted yet');
@@ -779,7 +779,7 @@ describe('Governance', function () {
 
             it('allows users to cancel their votes', async function () {
                 await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
                 await governance.connect(voter1).abrogationProposal_castVote(1, true);
 
                 await expect(governance.connect(voter1).abrogationProposal_cancelVote(1))
@@ -804,7 +804,7 @@ describe('Governance', function () {
 
             it('reverts if abrogate proposal failed', async function () {
                 const createTs = await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
 
                 await governance.connect(voter1).abrogationProposal_castVote(1, true);
                 await governance.connect(voter2).abrogationProposal_castVote(1, false);
@@ -818,7 +818,7 @@ describe('Governance', function () {
 
             it('works if abrogation proposal was accepted', async function () {
                 const createTs = await prepareProposalForAbrogation();
-                await governance.connect(user).startAbrogationProposal(1, '');
+                await governance.connect(user).startAbrogationProposal(1, 'description');
 
                 await governance.connect(user).abrogationProposal_castVote(1, true);
                 await governance.connect(voter1).abrogationProposal_castVote(1, true);
