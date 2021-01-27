@@ -14,7 +14,7 @@ abstract contract Parameters {
     uint256 constant PROPOSAL_MAX_ACTIONS = 10;
 
     modifier onlyDAO () {
-        require(msg.sender == address(this), 'Only DAO can call');
+        require(msg.sender == address(this), "Only DAO can call");
         _;
     }
 
@@ -23,6 +23,7 @@ abstract contract Parameters {
     }
 
     function setActiveDuration(uint256 period) public onlyDAO {
+        require(period >= 4 hours, "period must be > 0");
         activeDuration = period;
     }
 
@@ -31,18 +32,20 @@ abstract contract Parameters {
     }
 
     function setGracePeriodDuration(uint256 period) public onlyDAO {
+        require(period >= 4 hours, "period must be > 0");
         gracePeriodDuration = period;
     }
 
     function setAcceptanceThreshold(uint256 threshold) public onlyDAO {
-        require(threshold < 100, 'Maximum is 100.');
-        require(threshold > 50, 'Minimum is 50.');
+        require(threshold <= 100, "Maximum is 100.");
+        require(threshold > 50, "Minimum is 50.");
 
         acceptanceThreshold = threshold;
     }
 
     function setMinQuorum(uint256 quorum) public onlyDAO {
-        require(quorum < 100, 'Maximum is 100.');
+        require(quorum > 5, "quorum must be greater than 5");
+        require(quorum <= 100, "Maximum is 100.");
 
         minQuorum = quorum;
     }
