@@ -529,6 +529,58 @@ describe('Governance', function () {
             await expect(governance.connect(voter1).cancelProposal(1)).to.not.be.reverted;
             expect(await governance.state(1)).to.be.equal(ProposalState.Canceled);
         });
+
+        it('allows cancellation only when proposal is in warmup or active state', async function () {
+            await setupEnv();
+            await createTestProposal();
+
+            const ts = await helpers.getCurrentBlockchainTimestamp();
+
+            // proposal is in warm-up state now, it should be cancellable
+            let snapshot = await takeSnapshot();
+            await expect(governance.connect(user).cancelProposal(1)).to.not.be.reverted;
+            await revertEVM(snapshot);
+
+            await helpers.moveAtTimestamp(ts + warmUpDuration);
+
+            // proposal is now in active state
+            snapshot = await takeSnapshot();
+            await expect(governance.connect(user).cancelProposal(1)).to.not.be.reverted;
+            await revertEVM(snapshot);
+
+            // cast some votes to pass the proposal
+            await governance.connect(user).castVote(1, false);
+            await governance.connect(voter1).castVote(1, true);
+            await governance.connect(voter2).castVote(1, true);
+            await governance.connect(voter3).castVote(1, true);
+
+            // proposal should now be accepted and not cancellable
+            await helpers.moveAtTimestamp(ts + warmUpDuration + activeDuration + 1);
+
+            await expect(governance.connect(user).cancelProposal(1))
+                .to.be.revertedWith('Proposal in state that does not allow cancellation');
+
+            // try cancelling with another use and creator balance below threshold
+            await barn.setVotingPower(userAddress, 0);
+            await expect(governance.connect(voter1).cancelProposal(1))
+                .to.be.revertedWith('Proposal in state that does not allow cancellation');
+
+            // queue the proposal to change its state and try cancelling again
+            await governance.queue(1);
+
+            await expect(governance.connect(user).cancelProposal(1))
+                .to.be.revertedWith('Proposal in state that does not allow cancellation');
+            await expect(governance.connect(voter1).cancelProposal(1))
+                .to.be.revertedWith('Proposal in state that does not allow cancellation');
+
+            // move to grace period
+            await helpers.moveAtTimestamp(ts + warmUpDuration + activeDuration + queueDuration + 1);
+
+            await expect(governance.connect(user).cancelProposal(1))
+                .to.be.revertedWith('Proposal in state that does not allow cancellation');
+            await expect(governance.connect(voter1).cancelProposal(1))
+                .to.be.revertedWith('Proposal in state that does not allow cancellation');
+        });
     });
 
     describe('abrogation proposal', function () {
@@ -562,12 +614,19 @@ describe('Governance', function () {
             await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Proposal must be in queue');
 
+            let snapshot = await takeSnapshot();
+            await governance.connect(user).cancelProposal(1);
+            expect(await governance.state(1)).to.equal(ProposalState.Canceled);
+            await expect(governance.startAbrogationProposal(1, 'description'))
+                .to.be.revertedWith('Proposal must be in queue');
+            await revertEVM(snapshot);
+
             await helpers.moveAtTimestamp(creationTs + warmUpDuration + activeDuration + 1);
             expect(await governance.state(1)).to.equal(ProposalState.Accepted);
             await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Proposal must be in queue');
 
-            let snapshot = await takeSnapshot();
+            snapshot = await takeSnapshot();
 
             await governance.queue(1);
 
@@ -581,13 +640,6 @@ describe('Governance', function () {
             await expect(governance.startAbrogationProposal(1, 'description'))
                 .to.be.revertedWith('Abrogation proposal already exists');
 
-            await revertEVM(snapshot);
-
-            snapshot = await takeSnapshot();
-            await governance.connect(user).cancelProposal(1);
-            expect(await governance.state(1)).to.equal(ProposalState.Canceled);
-            await expect(governance.startAbrogationProposal(1, 'description'))
-                .to.be.revertedWith('Proposal must be in queue');
             await revertEVM(snapshot);
 
             await governance.queue(1);
