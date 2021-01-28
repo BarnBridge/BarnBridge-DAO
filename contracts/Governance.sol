@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.7.1;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IBarn.sol";
@@ -18,7 +18,8 @@ contract Governance is Bridge {
         Queued,
         Grace,
         Expired,
-        Executed
+        Executed,
+        Abrogated
     }
 
     struct Receipt {
@@ -30,9 +31,10 @@ contract Governance is Bridge {
         bool support;
     }
 
-    struct CancellationProposal {
+    struct AbrogationProposal {
         address creator;
         uint256 createTime;
+        string description;
 
         uint256 forVotes;
         uint256 againstVotes;
@@ -91,7 +93,7 @@ contract Governance is Bridge {
 
     uint256 public lastProposalId;
     mapping(uint256 => Proposal) public proposals;
-    mapping(uint256 => CancellationProposal) public cancellationProposals;
+    mapping(uint256 => AbrogationProposal) public abrogationProposals;
     mapping(address => uint256) public latestProposalIds;
     IBarn barn;
     bool isInitialized;
@@ -103,14 +105,16 @@ contract Governance is Bridge {
     event ProposalQueued(uint256 indexed proposalId, address caller, uint256 eta);
     event ProposalExecuted(uint256 indexed proposalId, address caller);
     event ProposalCanceled(uint256 indexed proposalId, address caller);
-    event CancellationProposalStarted(uint256 indexed proposalId, address caller);
-    event CancellationProposalExecuted(uint256 indexed proposalId, address caller);
-    event CancellationProposalVote(uint256 indexed proposalId, address indexed user, bool support, uint256 power);
-    event CancellationProposalVoteCancelled(uint256 indexed proposalId, address indexed user);
+    event AbrogationProposalStarted(uint256 indexed proposalId, address caller);
+    event AbrogationProposalExecuted(uint256 indexed proposalId, address caller);
+    event AbrogationProposalVote(uint256 indexed proposalId, address indexed user, bool support, uint256 power);
+    event AbrogationProposalVoteCancelled(uint256 indexed proposalId, address indexed user);
 
-    // executed only once.
+    // executed only once
     function initialize(address barnAddr) public {
-        require(isInitialized == false, 'Contract already initialized.');
+        require(isInitialized == false, "Contract already initialized.");
+        require(barnAddr != address(0), "barn must not be 0x0");
+
         barn = IBarn(barnAddr);
         isInitialized = true;
     }
@@ -147,6 +151,8 @@ contract Governance is Bridge {
         );
         require(targets.length != 0, "Must provide actions");
         require(targets.length <= PROPOSAL_MAX_ACTIONS, "Too many actions on a vote");
+        require(bytes(title).length > 0, "title can't be empty");
+        require(bytes(description).length > 0, "description can't be empty");
 
         // check if user has another running vote
         uint256 previousProposalId = latestProposalIds[msg.sender];
@@ -226,107 +232,6 @@ contract Governance is Bridge {
         emit ProposalCanceled(proposalId, msg.sender);
     }
 
-    function startCancellationProposal(uint256 proposalId) public {
-        require(state(proposalId) == ProposalState.Queued, "Proposal must be in queue");
-        require(
-            barn.votingPowerAtTs(msg.sender, block.timestamp - 1) >= _getCreationThreshold(),
-            "Creation threshold not met"
-        );
-
-        CancellationProposal storage cp = cancellationProposals[proposalId];
-
-        require(cp.createTime == 0, "Cancellation proposal already exists");
-
-        cp.createTime = block.timestamp;
-        cp.creator = msg.sender;
-
-        emit CancellationProposalStarted(proposalId, msg.sender);
-    }
-
-    function executeCancellationProposal(uint256 proposalId) public {
-        require(state(proposalId) == ProposalState.Canceled, "Cannot be executed");
-
-        Proposal storage proposal = proposals[proposalId];
-
-        require(proposal.canceled == false, "Cannot be executed");
-
-        proposal.canceled = true;
-
-        for (uint256 i = 0; i < proposal.targets.length; i++) {
-            cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
-        }
-
-        emit CancellationProposalExecuted(proposalId, msg.sender);
-    }
-
-    function voteCancellationProposal(uint256 proposalId, bool support) public {
-        require(0 < proposalId && proposalId <= lastProposalId, "invalid proposal id");
-
-        CancellationProposal storage cancellationProposal = cancellationProposals[proposalId];
-        Receipt storage receipt = cancellationProposal.receipts[msg.sender];
-
-        require(
-            state(proposalId) == ProposalState.Queued && cancellationProposal.createTime != 0,
-            "Cancel Proposal not active"
-        );
-
-        require(
-            receipt.hasVoted == false || receipt.hasVoted && receipt.support != support,
-            "Already voted this option"
-        );
-
-        uint256 votes = barn.votingPowerAtTs(msg.sender, cancellationProposal.createTime - 1);
-
-        // means it changed its vote
-        if (receipt.hasVoted) {
-            if (receipt.support) {
-                cancellationProposal.forVotes = cancellationProposal.forVotes.sub(receipt.votes);
-            } else {
-                cancellationProposal.againstVotes = cancellationProposal.againstVotes.sub(receipt.votes);
-            }
-        }
-
-        if (support) {
-            cancellationProposal.forVotes = cancellationProposal.forVotes.add(votes);
-        } else {
-            cancellationProposal.againstVotes = cancellationProposal.againstVotes.add(votes);
-        }
-
-        receipt.hasVoted = true;
-        receipt.votes = votes;
-        receipt.support = support;
-
-        emit CancellationProposalVote(proposalId, msg.sender, support, votes);
-    }
-
-    function cancelVoteCancellationProposal(uint256 proposalId) public {
-        require(0 < proposalId && proposalId <= lastProposalId, "invalid proposal id");
-
-        CancellationProposal storage cancellationProposal = cancellationProposals[proposalId];
-        Receipt storage receipt = cancellationProposal.receipts[msg.sender];
-
-        require(
-            state(proposalId) == ProposalState.Queued && cancellationProposal.createTime != 0,
-            "Cancel Proposal not active"
-        );
-
-        uint256 votes = barn.votingPowerAtTs(msg.sender, cancellationProposal.createTime - 1);
-
-        require(receipt.hasVoted, "Cannot cancel if not voted yet");
-
-        if (receipt.support) {
-            cancellationProposal.forVotes = cancellationProposal.forVotes.sub(votes);
-        } else {
-            cancellationProposal.againstVotes = cancellationProposal.againstVotes.sub(votes);
-        }
-
-        receipt.hasVoted = false;
-        receipt.votes = 0;
-        receipt.support = false;
-
-        emit CancellationProposalVoteCancelled(proposalId, msg.sender);
-    }
-
     function castVote(uint256 proposalId, bool support) public {
         require(state(proposalId) == ProposalState.Active, "Voting is closed");
 
@@ -337,6 +242,7 @@ contract Governance is Bridge {
         require(receipt.hasVoted == false || receipt.hasVoted && receipt.support != support, "Already voted this option");
 
         uint256 votes = barn.votingPowerAtTs(msg.sender, _getSnapshotTimestamp(proposal));
+        require(votes > 0, "no voting power");
 
         // means it changed its vote
         if (receipt.hasVoted) {
@@ -383,13 +289,127 @@ contract Governance is Bridge {
         emit VoteCanceled(proposalId, msg.sender);
     }
 
+    // ======================================================================================================
+    // Abrogation proposal methods
+    // ======================================================================================================
+
+    // the Abrogation Proposal is a mechanism for the DAO participants to veto the execution of a proposal that was already
+    // accepted and it is currently queued. For the Abrogation Proposal to pass, 50% + 1 of the vBOND holders
+    // must vote FOR the Abrogation Proposal
+    function startAbrogationProposal(uint256 proposalId, string memory description) public {
+        require(state(proposalId) == ProposalState.Queued, "Proposal must be in queue");
+        require(
+            barn.votingPowerAtTs(msg.sender, block.timestamp - 1) >= _getCreationThreshold(),
+            "Creation threshold not met"
+        );
+
+        AbrogationProposal storage ap = abrogationProposals[proposalId];
+
+        require(ap.createTime == 0, "Abrogation proposal already exists");
+        require(bytes(description).length > 0, "description can't be empty");
+
+        ap.createTime = block.timestamp;
+        ap.creator = msg.sender;
+        ap.description = description;
+
+        emit AbrogationProposalStarted(proposalId, msg.sender);
+    }
+
+    // abrogateProposal cancels a proposal if there's an Abrogation Proposal that passed
+    function abrogateProposal(uint256 proposalId) public {
+        require(state(proposalId) == ProposalState.Abrogated, "Cannot be abrogated");
+
+        Proposal storage proposal = proposals[proposalId];
+
+        require(proposal.canceled == false, "Cannot be abrogated");
+
+        proposal.canceled = true;
+
+        for (uint256 i = 0; i < proposal.targets.length; i++) {
+            cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+        }
+
+        emit AbrogationProposalExecuted(proposalId, msg.sender);
+    }
+
+    function abrogationProposal_castVote(uint256 proposalId, bool support) public {
+        require(0 < proposalId && proposalId <= lastProposalId, "invalid proposal id");
+
+        AbrogationProposal storage abrogationProposal = abrogationProposals[proposalId];
+        require(
+            state(proposalId) == ProposalState.Queued && abrogationProposal.createTime != 0,
+            "Abrogation Proposal not active"
+        );
+
+        Receipt storage receipt = abrogationProposal.receipts[msg.sender];
+        require(
+            receipt.hasVoted == false || receipt.hasVoted && receipt.support != support,
+            "Already voted this option"
+        );
+
+        uint256 votes = barn.votingPowerAtTs(msg.sender, abrogationProposal.createTime - 1);
+        require(votes > 0, "no voting power");
+
+        // means it changed its vote
+        if (receipt.hasVoted) {
+            if (receipt.support) {
+                abrogationProposal.forVotes = abrogationProposal.forVotes.sub(receipt.votes);
+            } else {
+                abrogationProposal.againstVotes = abrogationProposal.againstVotes.sub(receipt.votes);
+            }
+        }
+
+        if (support) {
+            abrogationProposal.forVotes = abrogationProposal.forVotes.add(votes);
+        } else {
+            abrogationProposal.againstVotes = abrogationProposal.againstVotes.add(votes);
+        }
+
+        receipt.hasVoted = true;
+        receipt.votes = votes;
+        receipt.support = support;
+
+        emit AbrogationProposalVote(proposalId, msg.sender, support, votes);
+    }
+
+    function abrogationProposal_cancelVote(uint256 proposalId) public {
+        require(0 < proposalId && proposalId <= lastProposalId, "invalid proposal id");
+
+        AbrogationProposal storage abrogationProposal = abrogationProposals[proposalId];
+        Receipt storage receipt = abrogationProposal.receipts[msg.sender];
+
+        require(
+            state(proposalId) == ProposalState.Queued && abrogationProposal.createTime != 0,
+            "Abrogation Proposal not active"
+        );
+
+        uint256 votes = barn.votingPowerAtTs(msg.sender, abrogationProposal.createTime - 1);
+
+        require(receipt.hasVoted, "Cannot cancel if not voted yet");
+
+        if (receipt.support) {
+            abrogationProposal.forVotes = abrogationProposal.forVotes.sub(votes);
+        } else {
+            abrogationProposal.againstVotes = abrogationProposal.againstVotes.sub(votes);
+        }
+
+        receipt.hasVoted = false;
+        receipt.votes = 0;
+        receipt.support = false;
+
+        emit AbrogationProposalVoteCancelled(proposalId, msg.sender);
+    }
+
+    // ======================================================================================================
     // views
+    // ======================================================================================================
+
     function state(uint256 proposalId) public view returns (ProposalState) {
         require(0 < proposalId && proposalId <= lastProposalId, "invalid proposal id");
 
         Proposal storage proposal = proposals[proposalId];
 
-        if (proposal.canceled || _proposalCancelledViaCounterProposal(proposalId)) {
+        if (proposal.canceled) {
             return ProposalState.Canceled;
         }
 
@@ -406,7 +426,7 @@ contract Governance is Bridge {
         }
 
         if ((proposal.forVotes + proposal.againstVotes) < _getQuorum(proposal) ||
-            (proposal.forVotes <= _getMinForVotes(proposal))) {
+            (proposal.forVotes < _getMinForVotes(proposal))) {
             return ProposalState.Failed;
         }
 
@@ -416,6 +436,10 @@ contract Governance is Bridge {
 
         if (block.timestamp < proposal.eta) {
             return ProposalState.Queued;
+        }
+
+        if (_proposalAbrogated(proposalId)) {
+            return ProposalState.Abrogated;
         }
 
         if (block.timestamp <= proposal.eta + proposal.parameters.gracePeriodDuration) {
@@ -433,8 +457,8 @@ contract Governance is Bridge {
         return proposals[proposalId].parameters;
     }
 
-    function getCancellationProposalReceipt(uint256 proposalId, address voter) public view returns (Receipt memory) {
-        return cancellationProposals[proposalId].receipts[voter];
+    function getAbrogationProposalReceipt(uint256 proposalId, address voter) public view returns (Receipt memory) {
+        return abrogationProposals[proposalId].receipts[voter];
     }
 
     function getActions(uint256 proposalId) public view returns (
@@ -453,7 +477,9 @@ contract Governance is Bridge {
         return _getQuorum(proposals[proposalId]);
     }
 
-    // internal
+    // ======================================================================================================
+    // internal methods
+    // ======================================================================================================
 
     function _canCancelProposal(uint256 proposalId) internal view returns (bool){
         Proposal storage proposal = proposals[proposalId];
@@ -499,9 +525,9 @@ contract Governance is Bridge {
         return barn.bondStakedAtTs(_getSnapshotTimestamp(proposal)).mul(proposal.parameters.minQuorum).div(100);
     }
 
-    function _proposalCancelledViaCounterProposal(uint256 proposalId) internal view returns (bool) {
+    function _proposalAbrogated(uint256 proposalId) internal view returns (bool) {
         Proposal storage p = proposals[proposalId];
-        CancellationProposal storage cp = cancellationProposals[proposalId];
+        AbrogationProposal storage cp = abrogationProposals[proposalId];
 
         if (cp.createTime == 0 || block.timestamp < p.eta) {
             return false;
