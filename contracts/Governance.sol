@@ -157,7 +157,7 @@ contract Governance is Bridge {
         // check if user has another running vote
         uint256 previousProposalId = latestProposalIds[msg.sender];
         if (previousProposalId != 0) {
-            require(_isCancellableState(previousProposalId) == false, "One live proposal per proposer");
+            require(_isLiveState(previousProposalId) == false, "One live proposal per proposer");
         }
 
         uint256 newProposalId = lastProposalId + 1;
@@ -496,10 +496,17 @@ contract Governance is Bridge {
     function _isCancellableState(uint256 proposalId) internal view returns (bool) {
         ProposalState s = state(proposalId);
 
-        return s != ProposalState.Canceled &&
-        s != ProposalState.Executed &&
-        s != ProposalState.Failed &&
-        s != ProposalState.Expired;
+        return s == ProposalState.WarmUp || s == ProposalState.Active;
+    }
+
+    function _isLiveState(uint256 proposalId) internal view returns (bool) {
+        ProposalState s = state(proposalId);
+
+        return s == ProposalState.WarmUp ||
+        s == ProposalState.Active ||
+        s == ProposalState.Accepted ||
+        s == ProposalState.Queued ||
+        s == ProposalState.Grace;
     }
 
     function _canBeExecuted(uint256 proposalId) internal view returns (bool) {
