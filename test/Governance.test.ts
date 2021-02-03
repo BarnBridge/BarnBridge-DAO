@@ -1,5 +1,5 @@
 import { ethers } from 'hardhat';
-import { BigNumber, ethers as ejs, Signer, Transaction } from 'ethers';
+import { BigNumber, ethers as ejs, Signer } from 'ethers';
 import * as helpers from './helpers';
 import { moveAtTimestamp } from './helpers';
 import { expect } from 'chai';
@@ -54,7 +54,7 @@ describe('Governance', function () {
         });
 
         it('is able to receive ethers', async function () {
-            const balance =await user.getBalance();
+            const balance = await user.getBalance();
 
             await expect(user.sendTransaction({
                 to: governance.address,
