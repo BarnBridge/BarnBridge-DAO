@@ -110,6 +110,8 @@ contract Governance is Bridge {
     event AbrogationProposalVote(uint256 indexed proposalId, address indexed user, bool support, uint256 power);
     event AbrogationProposalVoteCancelled(uint256 indexed proposalId, address indexed user);
 
+    receive() external payable {}
+
     // executed only once
     function initialize(address barnAddr) public {
         require(isInitialized == false, "Contract already initialized.");
