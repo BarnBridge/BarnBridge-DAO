@@ -52,6 +52,17 @@ describe('Governance', function () {
         it('should be deployed', async function () {
             expect(governance.address).to.not.equal(0);
         });
+
+        it('is able to receive ethers', async function () {
+            const balance = await user.getBalance();
+
+            await expect(user.sendTransaction({
+                to: governance.address,
+                value: balance.div(2),
+            })).to.not.be.reverted;
+
+            expect(await ethers.provider.getBalance(governance.address)).to.equal(balance.div(2));
+        });
     });
 
     describe('activate', function () {
@@ -580,6 +591,46 @@ describe('Governance', function () {
                 .to.be.revertedWith('Proposal in state that does not allow cancellation');
             await expect(governance.connect(voter1).cancelProposal(1))
                 .to.be.revertedWith('Proposal in state that does not allow cancellation');
+        });
+
+        it('test proposal with only value transfer', async function () {
+            await setupEnv();
+
+            const balance = await user.getBalance();
+            await user.sendTransaction({
+                to: governance.address,
+                value: balance.div(2),
+            });
+
+            const targets = [await voter2.getAddress()];
+            const values = [balance.div(2)];
+            const signatures = [''];
+            const callDatas = ['0x'];
+            await governance.connect(user)
+                .propose(targets, values, signatures, callDatas, 'description', 'title');
+
+            let ts = await helpers.getCurrentBlockchainTimestamp();
+            await helpers.moveAtTimestamp(ts + warmUpDuration);
+            await governance.connect(voter1).castVote(1, true);
+
+            ts = await helpers.getCurrentBlockchainTimestamp();
+
+            await governance.connect(voter2).castVote(1, false);
+            await governance.connect(user).castVote(1, true);
+            await governance.connect(voter2).castVote(1, true);
+
+            await helpers.moveAtTimestamp(ts + activeDuration);
+            await governance.queue(1);
+
+            ts = await helpers.getCurrentBlockchainTimestamp();
+
+            await helpers.moveAtTimestamp(ts + queueDuration + 1);
+
+            const balance1 = await voter2.getBalance();
+            await governance.connect(user).execute(1);
+            const balance2 = await voter2.getBalance();
+
+            expect(balance2).to.equal(balance1.add(balance.div(2)));
         });
     });
 
