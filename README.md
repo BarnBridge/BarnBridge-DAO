@@ -24,6 +24,11 @@ yarn test
 yarn run coverage
 ```
 
+## Deployed contracts
+### Mainnet
+```shell
+Governance deployed at:  0x4cAE362D7F227e3d306f70ce4878E245563F3069
+```
 
 ## Audits
 - [QuantStamp](https://github.com/BarnBridge/BarnBridge-PM/blob/master/audits/Quantstamp-DAO.pdf)
