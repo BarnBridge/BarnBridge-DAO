@@ -128,6 +128,3 @@ For any concerns with the platform, open an issue on GitHub or visit us on [Disc
 For security concerns, please email info@barnbridge.com.
 
 Copyright 2021 BarnBridge DAO
-
-
-
