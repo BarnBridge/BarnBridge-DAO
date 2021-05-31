@@ -1,4 +1,5 @@
 # BarnBridge DAO
+![](https://i.imgur.com/Neja9z5.png)
 
 Implements the BarnBridge Decentralized Autonomous Organization (DAO) Governance contracts, allowing token holders to create proposals, vote upon them, and queues up for execution those proposals that have passed with quorum. Includes an Abrogation mechanism to cancel queued transactions.
 
