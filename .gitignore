@@ -8,9 +8,9 @@ abi
 coverage
 coverage.json
 
-# Local settings
-config.ts
-
 # IDE settings
 .idea/
 typechain/
+
+# NPM Package Lock
+package-lock.json
