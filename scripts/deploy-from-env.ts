@@ -1,4 +1,7 @@
 import * as helpers from '../test/helpers';
+
+require('dotenv').config();
+
 const _barn = process.env.BARN;
 
 async function main () {
