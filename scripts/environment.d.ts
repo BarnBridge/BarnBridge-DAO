@@ -5,6 +5,7 @@ declare global {
       CHAIN: string;
       CHAINID: string;
       PROVIDER: string;
+      ETHERSCAN: string;
       MNEMONIC: string;
     }
   }
