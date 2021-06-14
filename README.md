@@ -33,7 +33,7 @@ Check out more detailed smart contract Slither graphs with all the dependencies:
 
 1. Navigate to [Infura.io](https://infura.io/) and create an account
 2. Log in and select "Get started and create your first project to access the Ethereum network"
-3. Create a project and name it appropriately
+3. Create a project and name it appropriately; switch the Network to Kovan
 4. Then, copy the URL and paste it into the section named PROVIDER in the .env file
 
 ### Create an API key with Etherscan 
